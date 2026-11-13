@@ -7,6 +7,7 @@ import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction } from './st
 import { seedStore } from './seed.js';
 import { Simulator } from './simulator.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
+import { connectFriends } from './friend-hook.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
@@ -183,7 +184,15 @@ export function action({ type, payload = {} }) {
         if(target===actor) throw Object.assign(new Error('Cannot follow yourself'),{status:400});
         const existsEdge=DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='follow'").get(actor,target);
         if(existsEdge) DB.prepare("DELETE FROM edges WHERE source_id=? AND target_id=? AND kind='follow'").run(actor,target);
-        else { DB.prepare("INSERT INTO edges VALUES(?,?,?,?)").run(actor,target,'follow',isoNow()); notify(target,actor,'follow',target); }
+        else {
+          DB.prepare("INSERT INTO edges VALUES(?,?,?,?)").run(actor,target,'follow',isoNow());
+          notify(target,actor,'follow',target);
+          if(DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='follow'").get(target,actor)
+            && connectFriends(DB,actor,target,isoNow())) {
+            for(const friendId of [actor,target]) if(!accountStmt.get(friendId).is_human) makeSystemMd(friendId);
+            logEvent(DB,actor,'friend.connected',{targetId:target,hook:'mutual-follow'});
+          }
+        }
         logEvent(DB,actor,existsEdge?'follow.removed':'follow.created',{targetId:target}); result={following:!existsEdge}; break;
       }
       case 'like.toggle': {

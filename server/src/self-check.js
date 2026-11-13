@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { openStore } from './store.js';
 import { seedStore } from './seed.js';
 import { existingMedia } from './media.js';
+import { connectFriends } from './friend-hook.js';
 
 const temp=mkdtempSync(join(tmpdir(),'cygnet-check-'));
 const db=openStore(':memory:');
@@ -16,6 +17,10 @@ try {
   const persona=db.prepare("SELECT id,system_md FROM accounts WHERE is_human=0 LIMIT 1").get();
   assert.match(persona.system_md,/## Friends\n- \[\[/);
   assert.equal(readFileSync(join(temp,'personas',persona.id,'system.md'),'utf8'),persona.system_md);
+  const friend=db.prepare("SELECT id FROM accounts WHERE is_human=0 AND id!=? LIMIT 1").get(persona.id).id;
+  assert.equal(connectFriends(db,persona.id,friend,new Date().toISOString()),true);
+  assert.equal(connectFriends(db,persona.id,friend,new Date().toISOString()),false);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM edges WHERE kind='friend' AND ((source_id=? AND target_id=?) OR (source_id=? AND target_id=?))").get(persona.id,friend,friend,persona.id).n,2);
   writeFileSync(join(temp,'generated.png'),'not-an-image-but-a-file');
   assert.equal(existingMedia('generated.png',temp),'generated.png');
   assert.throws(()=>existingMedia('../generated.png',temp),/Generated media file not found/);
