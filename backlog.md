@@ -2,10 +2,10 @@
 
 ## Durum özeti
 
-- Aşama: 1.0 doğrulandı; commit/push ediliyor
+- Aşama: 1.0 doğrulandı ve private `main`e gönderildi
 - Son tamamlanan iş: eski şemadan migration, ayarlar/nüfus/arşiv API'si, retry toparlanması ve gerçek Codex blok aşma akışı izole veritabanında doğrulandı
-- Şu an yapılan iş: test raporu ve son Git senkronizasyonu
-- Sıradaki adım: 1.0 kodu/raporunu main'e push etmek; sonra bir haftalık deneyde dayanıklılık verisi toplamak
+- Şu an yapılan iş: 1.0 tamamlandı
+- Sıradaki adım: yerelde uygulamayı çalıştırıp bir haftalık deney verisi toplamak; sonra 1.1 raporunu hazırlamak
 - MVP/1.0 dışında henüz kontrol edilmeyenler: tarayıcı görsel E2E'si ve bir haftalık sürekli çalışma
 
 ## İşler

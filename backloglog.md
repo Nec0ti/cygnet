@@ -2,6 +2,12 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — 1.0 doğrulandı ve yayımlandı
+
+- İzole veritabanında migration, ayarlar/nüfus, event arşivi, export, hafıza, retry ve blok sonrası alternatif hesap senaryoları doğrulandı; ayrıntılar `reports/1.0-verification.md` içinde.
+- Server/engine/seed self-check'leri ve web production build geçti. Tarayıcı görsel E2E'si ile bir haftalık dayanıklılık çalışması yapılmadı.
+- Değişiklikler `f3a4596` ve backlog durum kaydı commit'i ile private `main`e gönderildi; sıradaki adım yerel haftalık deneyi çalıştırmak.
+
 ## 2026-11-13 — 1.0 geliştirme başladı
 
 - Kullanıcı MVP'yi inceledi ve seed feed'deki SVG çizimlerini düşük gerçekçilikte buldu; 1.0'da Codex imagegen ile dört fotoğraf üretildi ve frontend fallback'leri değiştirildi.
@@ -15,7 +21,7 @@
 - Fake runner self-check'i orchestrator hatasında 15 dakika backoff ve sonraki başarılı tick'te retry state temizlenmesini doğruladı.
 - `npm run check`, engine/seed self-check'leri, JS parse kontrolleri, web production build ve `git diff --check` geçti.
 - Test DB, persona dosyaları ve medya `/tmp`'te oluşturulup silindi; gerçek `server/data` değiştirilmedi. Tarayıcı görsel E2E'si ve haftalık dayanıklılık deneyi sonraki kullanım içindir.
-- Sıradaki: test raporu ile kodu commit/push et.
+- Sıradaki: yerelde bir haftalık deneyi başlat; sonra 1.1 raporunu hazırla.
 
 ## 2026-11-13 — MVP uygulaması ve doğrulama
 
