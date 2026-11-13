@@ -2,10 +2,10 @@
 
 ## Durum özeti
 
-- Aşama: 1.1 ve 2.0 uygulaması doğrulandı; commit/push hazırlanıyor
+- Aşama: 1.1 ve 2.0 uygulaması doğrulandı ve private `main`e gönderildi (`f357bb4`)
 - Son tamamlanan iş: JSON/CSV raporu, keşif UI'ı, kontrollü kohort karşılaştırması, salt okunur replay ve izole API akışı
-- Şu an yapılan iş: dokümantasyon, son kontroller ve Git senkronizasyonu
-- Sıradaki adım: özellikleri private `main`e push etmek; sonra yerel simülasyonu bir hafta çalıştırıp deney raporu üretmek
+- Şu an yapılan iş: sürüm geliştirmesi tamamlandı
+- Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 
 ## İşler

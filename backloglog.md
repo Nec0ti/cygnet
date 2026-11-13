@@ -10,7 +10,8 @@
 - Seed/system prompt tutarlılığı ve küçük yaş güvenlik sınırları self-check'e alındı; retry, report, experiment ve replay kontrolleri geçti.
 - Web production build ve izole API akışı geçti: JSON/CSV raporu, geçersiz tarih, deney oluştur/bitir/karşılaştır, ayar kilidi ve replay kontrol edildi. Tarayıcı görsel E2E'si çalıştırılmadı.
 - Test sunucusu ve DB `/tmp` altında açılıp kapatıldı ve silindi; gerçek `server/data` kullanılmadı.
-- Sıradaki: değişiklikleri private `main`e push etmek; ardından gerçek haftalık kullanım verisiyle rapor hazırlamak.
+- Değişiklikler `f357bb4` ile private `main`e push edildi; remote SHA yerel HEAD ile eşleşiyor.
+- Sıradaki: yerel simülasyonu bir hafta çalıştırıp gerçek kullanım verisiyle rapor hazırlamak.
 
 ## 2026-11-13 — 1.1 ve 2.0 çalışması başladı
 
