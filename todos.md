@@ -25,15 +25,19 @@
 
 ## 1.1 — deney raporu
 
-- Bir haftalık istatistikler: post/story/DM sayıları, etkileşim, takip ağı değişimi, persona aktivitesi, görsel sayısı ve üretim başarısızlığı.
-- JSON/CSV veri dışa aktarma ve özet rapor.
-- Tekrarlanabilir deney için ayarları ve olay kayıtlarını birlikte arşivleme.
+- [ ] Tarih aralığı seçilebilen özet rapor: post/story/DM, etkileşim, takip, report, görsel ve persona aktivitesi; günlük seri ve persona kırılımı.
+- [ ] Raporu JSON ve CSV olarak dışa aktarma; CSV metinlerini spreadsheet formül enjeksiyonuna karşı güvenli kılma.
+- [ ] Rapor anındaki ayarları ve olay aralığını rapora iliştirme; bir haftalık gerçek çalışma verisi olmadan sonuç uydurmama.
+- [ ] İzole DB'de tarih filtresi, metrik sayımı, dışa aktarma ve boş veri aralığı için self-check.
 
-## 2.0 — deney ihtiyacı gösterirse
+## 2.0 — keşif ve kontrollü deneyler
 
-- Arama, feed sıralaması ve arayüz/erişilebilirlik iyileştirmeleri.
-- Kontrollü persona deneyleri ve tekrar oynatma.
-- Karakter tutarlılığı veya alternatif yerel görsel sağlayıcısı.
+- [ ] Persona aramasını ad, kullanıcı adı, bio, ülke ve pronouns alanlarında yapma; feed'i yeni/popüler/çok yorumlanan olarak sıralama.
+- [ ] Arama, sıralama, gezinme ve olay oynatımı için klavye ve ekran okuyucu erişimini iyileştirme.
+- [ ] Açıkça seçilmiş persona ID'leriyle iki kohortlu deney kaydı, ayar snapshot'ı ve kohort etkinlik karşılaştırması.
+- [ ] Olay günlüğünü zaman sırasıyla salt okunur oynatma; mevcut sosyal işlemleri yeniden çalıştırmama.
+- [ ] Persona cevaplarında yaş sınırı ve karakter kurallarının korunmasını self-check ile güvenceye alma.
+- [ ] Kontrollü deney, karşılaştırma ve salt okunur replay akışını izole DB/API'de doğrulama.
 
 ## Durum
 
@@ -46,6 +50,7 @@
 - [x] Uçtan uca yerel kullanım talimatı ve veri dışa aktarma
 - [x] İzole veritabanında tam simülasyon smoke check'i: orkestratör, persona, imagegen, DB postu ve medya HTTP yanıtı
 - [x] Son dokümantasyon commit/push (`69b06bc`)
-- [ ] Deney raporu
+- [ ] 1.1 deney raporu araçları ve gerçek bir haftalık çalışma verisi
+- [ ] 2.0 keşif, erişilebilirlik, kohort karşılaştırma ve salt okunur replay
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.

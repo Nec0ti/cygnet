@@ -2,6 +2,13 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — 1.1 ve 2.0 çalışması başladı
+
+- Kullanıcı tüm yol haritası tamamlanana kadar devam etmemi istedi; açık kapsam `todos.md` içinde 1.1 rapor araçları ve 2.0 keşif, kohort karşılaştırma, salt okunur replay olarak netleştirildi.
+- Raporlar geçmişten veri uydurmayacak; tarih aralığı ve ayar snapshot'ı gösterecek. Gerçek haftalık rapor için yerel simülasyonun bir hafta çalışması gerekecek.
+- Rapor API, keşif/erişilebilirlik UI'ı ve kohort/replay veri modülü ayrı worktree'lerde geliştiriliyor; entegrasyonu ana worktree yapacak.
+- Sıradaki: modüller hazır olunca API/UI entegrasyonu, izole DB self-check ve commit/push.
+
 ## 2026-11-13 — 1.0 doğrulandı ve yayımlandı
 
 - İzole veritabanında migration, ayarlar/nüfus, event arşivi, export, hafıza, retry ve blok sonrası alternatif hesap senaryoları doğrulandı; ayrıntılar `reports/1.0-verification.md` içinde.

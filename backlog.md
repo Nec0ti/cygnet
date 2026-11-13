@@ -2,11 +2,11 @@
 
 ## Durum özeti
 
-- Aşama: 1.0 doğrulandı ve private `main`e gönderildi
-- Son tamamlanan iş: eski şemadan migration, ayarlar/nüfus/arşiv API'si, retry toparlanması ve gerçek Codex blok aşma akışı izole veritabanında doğrulandı
-- Şu an yapılan iş: 1.0 tamamlandı
-- Sıradaki adım: yerelde uygulamayı çalıştırıp bir haftalık deney verisi toplamak; sonra 1.1 raporunu hazırlamak
-- MVP/1.0 dışında henüz kontrol edilmeyenler: tarayıcı görsel E2E'si ve bir haftalık sürekli çalışma
+- Aşama: 1.1 raporlama ve 2.0 geliştirmesi
+- Son tamamlanan iş: Cygnet 1.0 doğrulandı ve private `main`e gönderildi (`ed80871`)
+- Şu an yapılan iş: tarih aralıklı deney raporu, keşif/erişilebilirlik ve kohort/replay özellikleri
+- Sıradaki adım: 1.1 API ve 2.0 kohort altyapısını birleştirip UI'ı bağlamak; her akışı izole DB'de doğrulamak
+- Açık sınırlar: gerçek haftalık deney verisi henüz yok; raporlama aracı bittiğinde kullanıcı çalıştırması gerekecek
 
 ## İşler
 
@@ -35,6 +35,19 @@
 - [x] Varsayılan kapalı, tek seferlik alternatif hesap blok aşma senaryosu.
 - [x] Seed feed için imagegen fotoğrafları.
 - [x] Uçtan uca yeni DB kontrolü; test raporu ve belge/depo senkronizasyonu.
+
+### Cygnet 1.1
+
+- [ ] Tarih aralıklı JSON/CSV metrik raporu ve ayar snapshot'ı.
+- [ ] Rapor API self-check'leri ve UI'dan indirme.
+- [ ] Gerçek bir haftalık simülasyon çalıştırıp rapor üretme (araç hazır olunca kullanıcı yerel deneyini başlatabilir).
+
+### Cygnet 2.0
+
+- [ ] Profil araması, feed sıralaması ve temel klavye/ekran okuyucu iyileştirmeleri.
+- [ ] Açık persona kohortları ve ayar snapshot'ı ile etkinlik karşılaştırma.
+- [ ] Salt okunur olay günlüğü replay'i; hiçbir sosyal işlemi tekrar çalıştırmaz.
+- [ ] Karakter/yaş sınırı self-check ve uçtan uca API/UI doğrulaması.
 
 ## Kayıt kuralı
 
