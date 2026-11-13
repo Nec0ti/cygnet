@@ -168,7 +168,11 @@ export class Simulator {
     if(assignment.kind==='dm') {
       const recipient=this.db.prepare('SELECT id,username,age,country,system_md,is_human FROM accounts WHERE id=?').get(target);
       const last= this.db.prepare(`SELECT m.content,m.sender_id FROM messages m JOIN conversation_members a ON a.conversation_id=m.conversation_id AND a.account_id=? JOIN conversation_members b ON b.conversation_id=m.conversation_id AND b.account_id=? ORDER BY m.created_at DESC LIMIT 1`).get(account.id,target);
-      return `Write one English private message to @${recipient.username}. Recipient age: ${recipient.age??'unknown'}. Keep this message non-sexual and age-appropriate; never flirt sexually with a minor or a recipient whose age is unknown. Recent incoming context: ${JSON.stringify(last||null)}. Return JSON only: {"content":"..."}.`;
+      const adultPair=Number.isInteger(account.age)&&account.age>=18&&Number.isInteger(recipient.age)&&recipient.age>=18;
+      const boundary=adultPair
+        ? 'Mild, non-graphic adult flirtation is okay; keep it text-only and do not produce explicit sexual content.'
+        : 'Keep the message strictly non-sexual and age-appropriate; never flirt sexually with a minor or anyone whose age is unknown.';
+      return `Write one English private message to @${recipient.username}. Sender age: ${account.age??'unknown'}; recipient age: ${recipient.age??'unknown'}. ${boundary} Recent incoming context: ${JSON.stringify(last||null)}. Return JSON only: {"content":"..."}.`;
     }
     throw new TypeError(`Unsupported persona task: ${assignment.kind}`);
   }
