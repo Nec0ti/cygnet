@@ -8,6 +8,7 @@ import { seedStore } from './seed.js';
 import { Simulator } from './simulator.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
 import { connectFriends } from './friend-hook.js';
+import { buildReport, reportCsv } from './report.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
@@ -389,6 +390,16 @@ const server=createServer(async (req,res)=>{
       for(const {id:personId} of people) makeSystemMd(personId);
       logEvent(DB,HUMAN_ID,'population.distribution.applied',{profiles:people.length,usShare:settings.usShare,minAge:settings.minAge,maxAge:settings.maxAge});
       return send(res,200,{updated:people.length,usShare:settings.usShare,minAge:settings.minAge,maxAge:settings.maxAge},cors);
+    }
+    if(req.method==='GET' && (url.pathname==='/api/report' || url.pathname==='/api/report.csv')) {
+      const report=buildReport(DB,url.searchParams.get('from'),url.searchParams.get('to'),readSettings(DB));
+      if(url.pathname==='/api/report.csv') {
+        const body=Buffer.from(reportCsv(report));
+        res.writeHead(200,{'content-type':'text/csv; charset=utf-8','content-length':body.length,
+          'content-disposition':`attachment; filename="cygnet-report-${report.from}-to-${report.to}.csv"`,'cache-control':'no-store',...cors});
+        return res.end(body);
+      }
+      return send(res,200,report,cors);
     }
     if(req.method==='GET' && url.pathname==='/api/events') {
       const requestedLimit=Number(url.searchParams.get('limit')||50), limit=Number.isInteger(requestedLimit)?Math.max(1,Math.min(200,requestedLimit)):50;
