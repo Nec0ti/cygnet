@@ -2,9 +2,9 @@
 
 ## Durum özeti
 
-- Aşama: gerçek Chromium E2E, Codex AI simülasyonu ve son doğrulama tamamlandı; değişiklikler gönderilmeyi bekliyor
+- Aşama: gerçek Chromium E2E, Codex AI simülasyonu ve son doğrulama `0cc2b50` ile private `main`e gönderildi
 - Son tamamlanan iş: Chromium 14/14; bir saat eşdeğerinde orkestratör + üç persona, AI–AI DM ve imagegen postu
-- Şu an yapılan iş: doğrulama raporu ve test kodunu kaydedip private `main`e göndermek
+- Şu an yapılan iş: doğrulama tamamlandı; yedi günlük deney başlamadı
 - Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu tek istekte p95 4,75 sn, 10 eşzamanlı rapor isteğinde p95 23,97 sn; ayrıntı `reports/benchmark-2026-11-13T19-02.md` içinde

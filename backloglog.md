@@ -10,7 +10,8 @@
 - Orkestratör istemindeki eksiksiz atama kuralı açıklaştırıldı; test edilen arkadaş grafiği uygun DM hedefi bağlamı olarak eklendi. Görsel gerçek PNG olarak üretildi ve elle incelendi.
 - `./cygnet.sh check`, production build ve launcher kontrolü tekrar geçti. Güncel 100/1.000 persona benchmark'ında ölçülen istek hatası yok; 1.000 persona/100.000 event rapor p95'i tek istekte 4,75 sn ve 10 eşzamanlı istekte 23,97 sn (`reports/benchmark-2026-11-13T19-02.md`).
 - Tam ayrıntı ve sınırlar `reports/2026-11-13-browser-simulation-verification.md` içinde. Simülasyon, browser E2E ve benchmark geçici verileri silindi; `server/data` değiştirilmedi. Yedi günlük deney başlatılmadı.
-- Sıradaki: raporu ve doğrulama değişikliklerini private `main`e gönder; kullanıcı yerel script ile yedi günlük deneyi başlatsın.
+- Rapor ve doğrulama kodu `0cc2b50` ile private `main`e gönderildi. Yedi günlük deney başlatılmadı.
+- Sıradaki: kullanıcı `./cygnet.sh` ile yerel deneyi başlatıp birikimli platform süresi yedi güne ulaşınca durdursun.
 
 ## 2026-11-13 — Kalıcı süre ölçümü, test ve benchmark çalışması
 
