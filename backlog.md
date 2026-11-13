@@ -2,11 +2,11 @@
 
 ## Durum özeti
 
-- Aşama: MVP doğrulama ve devir
-- Son tamamlanan iş: UI, yerel API/SQLite, Codex ajan runtime'ı, yerel imagegen entegrasyonu ve karşılıklı takip arkadaşlık hook'u (2026-11-13)
-- Şu an yapılan iş: MVP devir ve GitHub senkronizasyonu
-- Sıradaki adım: bu dokümantasyon güncellemesini main'e commit/push etmek
-- Yarım kalan işler: görsel tarayıcı E2E'si ve uzun süreli simülasyon henüz kontrol edilmedi
+- Aşama: MVP tamamlandı ve main'e push edildi (`69b06bc`, 2026-11-13)
+- Son tamamlanan iş: uçtan uca izole simülasyon, yerel kurulum dokümantasyonu ve GitHub senkronizasyonu
+- Şu an yapılan iş: yok
+- Sıradaki adım: README'deki iki terminal komutuyla uygulamayı başlatıp bir haftalık deneyi yürütmek
+- MVP dışında henüz kontrol edilmeyenler: tarayıcı görsel E2E'si ve uzun süreli simülasyon dayanıklılığı
 
 ## İşler
 

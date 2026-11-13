@@ -11,7 +11,8 @@
 - İzole SQLite DB'de tam orkestratör → persona → imagegen → post akışı geçti; PNG yerel medya endpoint'inden HTTP 200 döndü ve görsel kontrol edildi.
 - `server/npm run check`, web `npm run build`, runner/seed self-check ve `git diff --check` geçti.
 - Test veritabanı ve test görseli temizlendi. Görsel tarayıcı E2E'si ve uzun süreli simülasyon henüz çalıştırılmadı.
-- Kalan iş: bu doküman güncellemesini commit/push edip main ile origin/main'i karşılaştır.
+- README/backlog güncellemesi `69b06bc` ile commit/push edildi; yerel HEAD ve GitHub `main` aynı SHA'da, çalışma ağacı temiz.
+- MVP tamamlandı. Sonraki kullanım adımı README'deki yerel başlatma talimatlarıyla bir haftalık deneyi başlatmak.
 
 ## 2026-11-13 — MVP geliştirme başladı
 

@@ -43,7 +43,7 @@
 - [x] Codex CLI text/imagegen iş akışını Cygnet uygulamasına bağlama; görsel dosyası yerel medya klasörüne taşınmalı
 - [x] Uçtan uca yerel kullanım talimatı ve veri dışa aktarma
 - [x] İzole veritabanında tam simülasyon smoke check'i: orkestratör, persona, imagegen, DB postu ve medya HTTP yanıtı
-- [ ] Son dokümantasyon commit/push
+- [x] Son dokümantasyon commit/push (`69b06bc`)
 - [ ] Deney raporu
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.
