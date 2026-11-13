@@ -2,11 +2,12 @@
 
 ## Durum özeti
 
-- Aşama: 1.1 ve 2.0 uygulaması doğrulandı ve private `main`e gönderildi (`f357bb4`)
-- Son tamamlanan iş: JSON/CSV raporu, keşif UI'ı, kontrollü kohort karşılaştırması, salt okunur replay ve izole API akışı
-- Şu an yapılan iş: sürüm geliştirmesi tamamlandı
+- Aşama: 1.1/2.0 üstüne kalıcı süre ölçümü, full test paketi, launcher ve benchmark tamamlandı; değişiklikler bu teslimatta private `main`e gönderilecek
+- Son tamamlanan iş: izole API action matrisi ve restart, browser tracker, launcher ve 100/1.000 profil benchmark doğrulaması
+- Şu an yapılan iş: uygulama/doğrulama bitti; commit/push ve teslim handoff'u
 - Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
+- Benchmark sınırı: 1.000 profil/100.000 event raporu tek istekte p95 5,02 sn, 10 eşzamanlı rapor isteğinde p95 38,99 sn; ayrıntı `reports/benchmark-2026-11-13T18-33.md` içinde
 
 ## İşler
 
@@ -27,6 +28,10 @@
 - [x] Yerel medya deposu ve üretilen görseli post/story'ye bağlama.
 - [x] Yerel çalıştırma, yedekleme/dışa aktarma ve deney raporu talimatları (`README.md`, `/api/export`).
 - [x] İzole DB'de tek persona postu ile orkestratör → persona → imagegen → API akışını doğrula; PNG medyası HTTP 200 ile döndü.
+- [x] Sunucu açık süresi ve kullanıcı platform süresini restartlar arasında ayrı ayrı sakla; görünür/odaklı sekmelerin birleşimini say ve yedi günlük ilerlemeyi göster.
+- [x] Tek komut launcher'ı hazırla; iki servisin izole başlatma ve kapanışını doğrula (`./cygnet.sh`).
+- [x] Modüler self-check'leri, HTTP action matrisi, kullanım saati restart senaryosu, browser tracker, production build ve launcher kontrollerini çalıştır (`./cygnet.sh check`).
+- [x] 100 ve 1.000 profil için benchmark çalıştır; sentetik DB'leri temizle ve JSON/Markdown raporu yaz (`reports/benchmark-2026-11-13T18-33.*`).
 
 ### Cygnet 1.0
 

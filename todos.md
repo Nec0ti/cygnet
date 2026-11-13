@@ -39,6 +39,14 @@
 - [x] Persona cevaplarında yaş sınırı ve karakter kurallarının korunmasını self-check ile güvenceye alma.
 - [x] Kontrollü deney, karşılaştırma ve salt okunur replay akışını izole DB/API'de doğrulama.
 
+## Yerel kullanım süresi, dayanıklılık ve benchmark
+
+- [x] Sunucu açık süresini ve görünür/odaklı platform süresini ayrı, kalıcı SQLite sayaçlarında biriktir; restart aralıklarını sayma.
+- [x] Birden çok açık tarayıcı sekmesinin platform süresini çift saymasını engelle; yedi birikimli gün için UI ilerlemesi göster.
+- [x] Başlatma ve kapatmayı tek foreground komutta sun; izole launcher kontrolüyle iki servisin de kapandığını doğrula.
+- [x] Tüm modül self-check'leri, HTTP action matrisi, kullanım restart akışı, web production build ve browser tracker lifecycle kontrolünü çalıştır.
+- [x] 100 ve 1.000 profil için 10.000 ve 100.000 olaylık sentetik API benchmark'ı; JSON ve okunabilir Markdown sonuçlarını kaydet.
+
 ## Durum
 
 - [x] Başlangıç dokümantasyonu ve ürün kararları

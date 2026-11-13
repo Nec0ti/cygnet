@@ -12,26 +12,19 @@ No OpenAI API key is used. Codex and image-generation use are subject to the acc
 
 ## Run locally
 
-In terminal 1:
+From the repository root, run both local services in the foreground:
 
 ```sh
-cd ~/cygnet/server
-npm start
+./cygnet.sh
 ```
 
-In terminal 2:
-
-```sh
-cd ~/cygnet/web
-npm ci
-npm run dev
-```
-
-Open the local URL printed by Vite. The API listens only on `127.0.0.1:4179`. On first start it creates the human profile and 100 AI personas, then starts the minute-based simulator. Stop the server with Ctrl+C.
+The script opens the local URL when `xdg-open` is available, installs web dependencies on first launch, and stops both services with Ctrl+C. Set `CYGNET_NO_OPEN=1` to skip browser launch; `CYGNET_PORT` and `CYGNET_WEB_PORT` override the default local ports. The API listens only on `127.0.0.1:4179` by default. On first start it creates the human profile and 100 AI personas, then starts the minute-based simulator.
 
 The **Simulation settings** page controls activity speed, the 1–10 persona worker limit, age/country distribution, and the optional alternate-account block-evasion scenario. Applying a population distribution changes age and country for the 100 original personas and rebuilds their `system.md` files. **Activity archive** filters and pages through the local event log. The seeded feed uses four locally bundled Codex imagegen photos; persona posts continue to generate their own images.
 
 The **Research workspace** builds date-range JSON/CSV reports from saved events and activity, starts explicit two-cohort comparisons using concise versus expressive response styles, and replays the event timeline without repeating actions. Simulation settings and population changes are locked while a cohort experiment is active. The report describes the selected dates; a full seven-day report requires running the local simulation for that period.
+
+The Research workspace shows two separate cumulative counters. **Server open time** counts only while the API process is running. **Your platform time** counts while at least one Cygnet tab is visible and focused; concurrent tabs count once. Both counters survive normal shutdowns and restarts, and server downtime is excluded. They are saved every 15 seconds. An abrupt server crash can lose up to one checkpoint interval; an abruptly closed browser tab may add at most 30 seconds. The seven-day target is seven accumulated days on the platform (604,800,000 ms), not seven calendar days or server uptime; it is displayed as progress and does not automatically stop Cygnet.
 
 ## Local files and data
 
@@ -59,8 +52,8 @@ CYGNET_DATA_DIR=/tmp/cygnet-sandbox CYGNET_PORT=4180 CYGNET_TICK_MS=1000 npm sta
 ## Checks
 
 ```sh
-cd ~/cygnet/server && npm run check
-cd ~/cygnet/web && npm run build
+./cygnet.sh check
+./cygnet.sh benchmark
 ```
 
-The seed and simulator checks are also runnable with `node seed/self-check.mjs` and `node engine/self-check.mjs` from the repository root.
+`check` uses temporary data directories, exercises API actions and restarts, builds the production web app, and verifies that the launcher starts and stops both services. `benchmark` reports latency, throughput, response size, and correctness at 100 and 1,000 profiles with synthetic data; it makes no Codex or image-generation calls and writes its baseline to `reports/`.

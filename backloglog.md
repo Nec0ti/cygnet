@@ -2,6 +2,16 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — Kalıcı süre ölçümü, test ve benchmark çalışması
+
+- Kalıcı sunucu çalışma süresi ve sekme odaklı platform kullanım süresi SQLite'a checkpoint ile kaydediliyor; birden fazla açık sekme platform süresini çifte saymıyor.
+- İzole kullanım saati ve HTTP entegrasyon kontrolleri eklendi. Test, mesaj silme işleminde SQLite string literal hatası buldu; düzeltildi.
+- `./cygnet.sh` tek komut launcher'ı açılıp kapandı; `./cygnet.sh check` tüm server, engine, seed, browser tracker, entegrasyon ve production build kontrollerini geçti.
+- `server/npm run benchmark`, geçici DB'de 100/1.000 profil, 10 bin/100 bin synthetic event ve 1/10 paralel istekleri ölçtü. İkinci koşuda tüm endpoint'ler 2xx ve iki sette de correctness 5/5 oldu.
+- 1.000 profilde report p95 tek istekte 5.02 sn, concurrency 10'da 38.99 sn; 15.27 MB yanıt üretiyor. Bu ölçülen darboğaz rapora yazıldı. İlk 20'şer ağır endpoint örneklemesi 6 HTTP hatası vermişti; bootstrap/report için örneklem 10'a indirilip tüm benchmark tekrar çalıştırıldı ve hatasız tamamlandı.
+- Kullanım verisi, test DB'leri ve benchmark DB'leri `server/data` dışında tutuldu; gerçek `server/data` değiştirilmedi.
+- Sıradaki: değişiklikleri private `main`e commit/push et; yedi günlük gerçek deney birikimli platform kullanımında sonradan yapılacak.
+
 ## 2026-11-13 — 1.1 ve 2.0 uygulaması tamamlandı
 
 - 1.1 araştırma alanı tarih aralıklı post/story/DM/etkileşim/takip/report/görsel ve imagegen hata sayılarını özetliyor; JSON/CSV indirme spreadsheet formül enjeksiyonuna karşı korunuyor ve ayar snapshot'ı ekleniyor.

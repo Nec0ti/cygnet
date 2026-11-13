@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 type Account = { id: string; name: string; username: string }
 type Report = {
   from: string; to: string; generatedAt: string; settings: Record<string, unknown>
+  usage: { serverMs: number; platformMs: number; activeSessions: number }
   totals: Record<string, number>; followChanges: { created: number; removed: number; net: number }
   daily: Array<{ date: string } & Record<string, number>>
   personas: Array<{ id: string; username: string } & Record<string, number>>
@@ -14,11 +15,17 @@ type Experiment = {
 }
 type Comparison = { cohorts: Record<'a' | 'b', { name: string; accounts: number; totalEvents: number; eventsPerAccount: number; events: Record<string, number> }> }
 type ReplayEvent = { id: string; actor_id: string; username: string; type: string; payload: Record<string, unknown>; created_at: string }
+type Usage = { serverMs: number; platformMs: number; activeSessions: number }
 type Tab = 'report' | 'experiments' | 'replay'
 
+const experimentTargetMs = 7 * 24 * 60 * 60 * 1000
 const isoDay = (date: Date) => date.toISOString().slice(0, 10)
 const defaultFrom = () => { const date = new Date(); date.setUTCDate(date.getUTCDate() - 6); return isoDay(date) }
 const today = () => isoDay(new Date())
+const duration = (milliseconds: number) => {
+  const seconds = Math.floor(milliseconds / 1000), days = Math.floor(seconds / 86400), hours = Math.floor(seconds % 86400 / 3600), minutes = Math.floor(seconds % 3600 / 60)
+  return days ? `${days}d ${hours}h ${minutes}m` : hours ? `${hours}h ${minutes}m` : `${minutes}m ${seconds % 60}s`
+}
 
 async function requestJSON<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init)
@@ -41,6 +48,7 @@ export function ResearchPanel({ accounts, mocked }: { accounts: Account[]; mocke
   const [conditionA, setConditionA] = useState('concise')
   const [conditionB, setConditionB] = useState('expressive')
   const [replayEvents, setReplayEvents] = useState<ReplayEvent[]>([])
+  const [usage, setUsage] = useState<Usage | null>(null)
   const [replayIndex, setReplayIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -56,6 +64,14 @@ export function ResearchPanel({ accounts, mocked }: { accounts: Account[]; mocke
     return () => window.clearInterval(timer)
   }, [playing, replayEvents.length])
   useEffect(() => { if (playing && replayEvents.length && replayIndex >= replayEvents.length - 1) setPlaying(false) }, [playing, replayEvents.length, replayIndex])
+  useEffect(() => {
+    if (mocked) return
+    let alive = true
+    const load = () => { void requestJSON<Usage>('/api/usage').then((value) => { if (alive) setUsage(value) }).catch(() => {}) }
+    load()
+    const timer = window.setInterval(load, 15_000)
+    return () => { alive = false; window.clearInterval(timer) }
+  }, [mocked])
 
   async function loadReport() {
     setError(''); setBusy(true)
@@ -110,6 +126,7 @@ export function ResearchPanel({ accounts, mocked }: { accounts: Account[]; mocke
   const visibleReplay = replayEvents.slice(visibleReplayStart, Math.min(replayEvents.length, replayIndex + 26))
   return <section className="subpage research-page">
     <header className="page-header"><div><p className="eyebrow">LOCAL EXPERIMENTS</p><h1>Research workspace</h1><p className="page-intro">Reports use saved activity. Cohort prompts change only response length. Replay is read-only and never repeats social actions.</p></div></header>
+    {usage && <div className="usage-grid" aria-label="Cumulative time"><article className="metric-card"><span>Server open time</span><b>{duration(usage.serverMs)}</b><small>Saved checkpoints include previous runs.</small></article><article className="metric-card"><span>Your platform time</span><b>{duration(usage.platformMs)}</b><small>Visible, focused browser time · {usage.activeSessions} active tab{usage.activeSessions === 1 ? '' : 's'}</small></article><article className="metric-card"><span>Seven day experiment target</span><b>{Math.min(100, Math.floor(usage.platformMs / experimentTargetMs * 100))}%</b><progress aria-label="Seven day platform time progress" max={experimentTargetMs} value={Math.min(experimentTargetMs, usage.platformMs)} /><small>{duration(Math.max(0, experimentTargetMs - usage.platformMs))} remaining platform time</small></article></div>}
     <nav className="research-tabs" aria-label="Research tools">
       {([['report', 'Reports'], ['experiments', 'Cohort experiments'], ['replay', 'Event replay']] as const).map(([key, text]) => <button key={key} type="button" aria-pressed={tab === key} className={tab === key ? 'active' : ''} onClick={() => { setTab(key); setError('') }}>{text}</button>)}
     </nav>
@@ -119,7 +136,7 @@ export function ResearchPanel({ accounts, mocked }: { accounts: Account[]; mocke
     {tab === 'report' && <div className="research-panel">
       <div className="archive-filters"><label>From<input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} /></label><label>To<input type="date" value={to} min={from} onChange={(event) => setTo(event.target.value)} /></label><button type="button" className="primary-button" disabled={mocked || busy} onClick={() => void loadReport()}>{busy ? 'Loading…' : 'Build report'}</button>{report && <a className="quiet-button" href={reportUrl}>Download CSV</a>}</div>
       {report && <>
-        <p className="report-meta">Generated {new Date(report.generatedAt).toLocaleString()} · {report.from} to {report.to} · settings snapshot saved with report</p>
+        <p className="report-meta">Generated {new Date(report.generatedAt).toLocaleString()} · {report.from} to {report.to} · cumulative server open: {duration(report.usage.serverMs)} · platform foreground: {duration(report.usage.platformMs)}</p>
         <div className="metric-grid">{Object.entries(report.totals).map(([key, value]) => <article className="metric-card" key={key}><span>{key.replace(/[A-Z]/g, (letter) => ` ${letter}`).replace(/^./, (letter) => letter.toUpperCase())}</span><b>{value}</b></article>)}</div>
         <article className="setting-card report-settings"><h2>Settings snapshot</h2><code>{JSON.stringify(report.settings, null, 2)}</code><p>Follow changes: {report.followChanges.created} created · {report.followChanges.removed} removed · net {report.followChanges.net}</p></article>
         <h2 className="research-heading">Daily activity</h2><div className="table-scroll"><table><thead><tr><th>Date</th><th>Posts</th><th>Stories</th><th>DMs</th><th>Likes</th><th>Comments</th><th>Follows</th><th>Reports</th><th>Images</th><th>Image failures</th><th>Active personas</th></tr></thead><tbody>{report.daily.map((day) => <tr key={day.date}><th scope="row">{day.date}</th>{['posts','stories','dms','likes','comments','follows','reports','images','imageFailures','activePersonas'].map((key) => <td key={key}>{day[key] ?? 0}</td>)}</tr>)}</tbody></table></div>

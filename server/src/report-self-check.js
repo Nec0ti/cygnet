@@ -20,13 +20,15 @@ db.exec(`
   INSERT INTO events VALUES('e1','ai','like.created','2026-11-13T03:00:00.000Z','{}'),('e2','ai','follow.created','2026-11-13T05:00:00.000Z','{}'),('e3','ai','follow.removed','2026-11-13T05:30:00.000Z','{}'),('e4','ai','image.generation.failed','2026-11-13T08:00:00.000Z','{}');
 `);
 try {
-  const report=buildReport(db,'2026-11-13','2026-11-13',{speedMultiplier:1});
+  const report=buildReport(db,'2026-11-13','2026-11-13',{speedMultiplier:1},{serverMs:42,platformMs:24});
   assert.deepEqual(report.totals,{posts:1,stories:1,likes:1,comments:1,follows:2,dms:1,reports:1,images:2,imageFailures:1,activePersonas:1});
   assert.deepEqual(report.followChanges,{created:1,removed:1,net:0});
   assert.equal(report.events.length,4);
   assert.equal(report.daily.length,1);
   assert.equal(report.personas[0].dms,1);
   assert.equal(report.settings.speedMultiplier,1);
+  assert.equal(report.usage.serverMs,42);
+  assert.equal(report.usage.platformMs,24);
   const empty=buildReport(db,'2026-11-14','2026-11-14',{});
   assert.equal(empty.daily.length,1);
   assert.equal(empty.totals.posts,0);

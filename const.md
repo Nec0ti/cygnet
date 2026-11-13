@@ -35,6 +35,10 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - `CYGNET_DATA_DIR` veritabanı, medya ve prompt dosyalarını birlikte başka bir yerel klasöre yönlendirir; `CYGNET_TICK_MS` test/sandbox simülasyon saatini ayarlar.
 - Yerel dışa aktarma `/api/export` ile JSON olarak yapılır. Veritabanı, mesajlar, persona hafızası ve medya yedeği hassas deney verisi sayılır.
 - Tarih aralıklı raporlar olay/aktivite kayıtlarını ve rapor anındaki ayar snapshot'ını JSON veya CSV olarak sunar; gerçek yedi günlük sonuç için simülasyonun yedi gün çalışması gerekir.
+- Server runtime counter, API sürecinin gerçekten açık olduğu monotonik çalışma süresini biriktirir; normal kapanış ve restartlar toplamı korur, sunucunun kapalı olduğu süre eklenmez.
+- Platform usage counter, en az bir Cygnet sekmesi görünür ve odaktayken geçen süreyi toplar; eşzamanlı sekmeler tek kez sayılır. Deney hedefi 604.800.000 ms (7 birikimli platform günü); uygulama bu hedefte otomatik kapanmaz.
+- Kullanım süreleri 15 saniyede bir SQLite'a kaydedilir. Ani sunucu kesintisi son checkpoint aralığını kaybettirebilir; ani sekme kapanışı en fazla 30 saniye fazla sayabilir.
+- `./cygnet.sh` API ve web arayüzünü tek foreground komutla açar; Ctrl+C her ikisini kapatır. `./cygnet.sh check` izole testleri, `./cygnet.sh benchmark` sentetik performans ölçümünü çalıştırır.
 - Seed fotoğrafları `web/public/demo-images/` altında; çalışma sırasında üretilen fotoğraflar `server/data/media/` altında tutulur.
 
 ## Gizli bilgiler

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ResearchPanel } from './ResearchPanel'
+import { createPlatformUsage } from './platform-usage.mjs'
 
 type Account = { id: string; name: string; username: string; avatar: string; bio?: string; pronouns?: string; country?: string; verified?: boolean }
 type Post = { id: string; accountId: string; image: string; caption: string; location?: string; likes: number; comments: number; time: string; createdAt?: string; liked?: boolean }
@@ -160,6 +161,12 @@ function App() {
   const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => { void getJSON().then(({ data: nextData, mocked: isMocked }) => { setData(nextData); setProfileId(nextData.me.id); setActiveConversation(nextData.conversations[0]?.id || ''); setMocked(isMocked) }) }, [])
+  useEffect(() => {
+    if (mocked) return
+    const tracker = createPlatformUsage()
+    tracker.start()
+    return () => tracker.dispose()
+  }, [mocked])
   useEffect(() => { if (!toast) return; const id = window.setTimeout(() => setToast(''), 2200); return () => window.clearTimeout(id) }, [toast])
   useEffect(() => {
     if (page === 'settings' && !mocked) void fetch('/api/settings').then((response) => response.json()).then(setSettings).catch(() => {})

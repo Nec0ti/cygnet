@@ -10,10 +10,17 @@ import { existingMedia as resolveExistingMedia } from './media.js';
 import { connectFriends } from './friend-hook.js';
 import { buildReport, reportCsv } from './report.js';
 import { compareExperiment, createExperiment, ensureExperimentSchema, finishExperiment, listExperiments, replayEvents } from './experiments.js';
+import {
+  checkpointPlatformUsage, checkpointServerRuntime, endPlatformSession, ensureUsageSchema,
+  heartbeatPlatformSession, startPlatformSession, startServerRuntime, stopPlatformUsage,
+  stopServerRuntime, USAGE_HEARTBEAT_MS, usageSummary, validSessionId,
+} from './usage.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
 ensureExperimentSchema(DB);
+ensureUsageSchema(DB);
+const SERVER_RUNTIME = startServerRuntime(DB);
 seedStore(DB,{dataRoot:DATA_ROOT});
 const MEDIA_DIR = join(DATA_ROOT, 'media');
 mkdirSync(MEDIA_DIR, { recursive: true });
@@ -265,7 +272,7 @@ export function action({ type, payload = {} }) {
       case 'message.delete': {
         const message=DB.prepare('SELECT * FROM messages WHERE id=?').get(payload.messageId);
         if(!message || message.sender_id!==HUMAN_ID) throw Object.assign(new Error('Message not found or not owned by you'),{status:404});
-        DB.prepare('UPDATE messages SET content="",deleted_at=? WHERE id=?').run(isoNow(),message.id);
+        DB.prepare("UPDATE messages SET content='',deleted_at=? WHERE id=?").run(isoNow(),message.id);
         logEvent(DB,HUMAN_ID,'message.deleted',{messageId:message.id}); result={deleted:true}; break;
       }
       case 'block.toggle': {
@@ -362,6 +369,21 @@ const server=createServer(async (req,res)=>{
   if(req.method==='OPTIONS') { res.writeHead(204,{'access-control-allow-methods':'GET,POST,OPTIONS','access-control-allow-headers':'content-type',...cors}); return res.end(); }
   try {
     const url=new URL(req.url,'http://127.0.0.1');
+    if(req.method==='GET' && url.pathname==='/api/usage') return send(res,200,usageSummary(DB,SERVER_RUNTIME),cors);
+    if(req.method==='POST' && url.pathname.startsWith('/api/usage/sessions/')) {
+      const body=await parseBody(req);
+      if(!body||typeof body!=='object'||Array.isArray(body)) throw Object.assign(new Error('Platform session details are required'),{status:400});
+      const sessionId=body.sessionId;
+      if(!validSessionId(sessionId)) throw Object.assign(new Error('A valid platform session ID is required'),{status:400});
+      const phase=url.pathname.slice('/api/usage/sessions/'.length);
+      if(phase==='start'||phase==='heartbeat') {
+        if(typeof body.active!=='boolean') throw Object.assign(new Error('active must be boolean'),{status:400});
+        const result=phase==='start'?startPlatformSession(DB,sessionId,body.active):heartbeatPlatformSession(DB,sessionId,body.active);
+        return send(res,200,result,cors);
+      }
+      if(phase==='end') return send(res,200,endPlatformSession(DB,sessionId),cors);
+      throw Object.assign(new Error('Unknown platform session action'),{status:404});
+    }
     if(req.method==='GET' && url.pathname==='/api/bootstrap') return send(res,200,bootstrap(),cors);
     if(req.method==='GET' && url.pathname==='/api/simulator') return send(res,200,simulator.status,cors);
     if(req.method==='GET' && url.pathname==='/api/settings') return send(res,200,readSettings(DB),cors);
@@ -398,7 +420,7 @@ const server=createServer(async (req,res)=>{
       return send(res,200,{updated:people.length,usShare:settings.usShare,minAge:settings.minAge,maxAge:settings.maxAge},cors);
     }
     if(req.method==='GET' && (url.pathname==='/api/report' || url.pathname==='/api/report.csv')) {
-      const report=buildReport(DB,url.searchParams.get('from'),url.searchParams.get('to'),readSettings(DB));
+      const report=buildReport(DB,url.searchParams.get('from'),url.searchParams.get('to'),readSettings(DB),usageSummary(DB,SERVER_RUNTIME));
       if(url.pathname==='/api/report.csv') {
         const body=Buffer.from(reportCsv(report));
         res.writeHead(200,{'content-type':'text/csv; charset=utf-8','content-length':body.length,
@@ -454,7 +476,7 @@ const server=createServer(async (req,res)=>{
       return send(res,200,{events,nextBefore:last?`${last.created_at}|${last.id}`:null},cors);
     }
     if(req.method==='GET' && url.pathname==='/api/export') {
-      const tables=['accounts','edges','posts','likes','comments','conversations','conversation_members','messages','notifications','reports','events','settings','persona_memories'];
+      const tables=['accounts','edges','posts','likes','comments','conversations','conversation_members','messages','notifications','reports','events','settings','persona_memories','server_runtime_runs','platform_sessions','usage_state'];
       return send(res,200,Object.fromEntries(tables.map((table)=>[table,DB.prepare(`SELECT * FROM ${table}`).all()])),cors);
     }
     if(req.method==='GET' && url.pathname.startsWith('/api/profile/')) {
@@ -473,10 +495,23 @@ const server=createServer(async (req,res)=>{
     }
     return send(res,404,{error:'Not found'},cors);
   } catch(error) {
+    if (!error.status) console.error(error);
     return send(res,error.status||500,{error:error.status?error.message:'Internal server error'},cors);
   }
 });
 
 const simulator=new Simulator({db:DB,applyAction:action,mediaDir:MEDIA_DIR,dataDir:DATA_ROOT,tickMs:TICK_MS});
+const usageTimer=setInterval(()=>{checkpointServerRuntime(SERVER_RUNTIME);checkpointPlatformUsage(DB);},USAGE_HEARTBEAT_MS);
+usageTimer.unref?.();
 server.listen(PORT,'127.0.0.1',()=>{ simulator.start(); console.log(`Cygnet API listening on http://127.0.0.1:${PORT}`); });
-for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{ simulator.stop(); server.close(()=>{DB.close();process.exit(0);}); });
+let shuttingDown=false;
+function shutdown(code=0) {
+  if(shuttingDown) return;
+  shuttingDown=true; clearInterval(usageTimer); simulator.stop();
+  stopPlatformUsage(DB); stopServerRuntime(SERVER_RUNTIME);
+  const finish=()=>{DB.close();process.exit(code);};
+  if(server.listening) server.close(finish); else finish();
+  setTimeout(()=>{DB.close();process.exit(1);},5_000).unref?.();
+}
+server.on('error',(error)=>{console.error(`Cygnet API failed to listen: ${error.message}`);shutdown(1);});
+for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>shutdown());

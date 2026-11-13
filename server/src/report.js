@@ -12,7 +12,7 @@ function dateRange(from, to) {
   return { from, to, start: `${from}T00:00:00.000Z`, end: new Date(end).toISOString() };
 }
 
-export function buildReport(db, from, to, settings) {
+export function buildReport(db, from, to, settings, usage = {}) {
   const range = dateRange(from, to);
   const daily = new Map();
   for (let time = Date.parse(range.start); time < Date.parse(range.end); time += 86_400_000) {
@@ -61,7 +61,7 @@ export function buildReport(db, from, to, settings) {
     FROM events e JOIN accounts a ON a.id=e.actor_id WHERE e.created_at>=? AND e.created_at<?
     ORDER BY e.created_at,e.id`).all(...params).map((event) => ({ ...event, payload: JSON.parse(event.payload) }));
   return {
-    from: range.from, to: range.to, generatedAt: new Date().toISOString(), settings,
+    from: range.from, to: range.to, generatedAt: new Date().toISOString(), settings, usage,
     totals, followChanges, events,
     daily: [...daily.entries()].map(([date, metrics]) => ({ date, ...metrics })),
     personas: [...people.values()].sort((a, b) => b.posts + b.stories + b.likes + b.comments + b.follows + b.dms - (a.posts + a.stories + a.likes + a.comments + a.follows + a.dms) || a.username.localeCompare(b.username)),
@@ -77,12 +77,12 @@ function csvCell(value) {
 export function reportCsv(report) {
   const keys = METRICS.concat('activePersonas');
   const rows = [
-    ['row_type', 'date', 'persona_id', 'username', ...keys, 'from', 'to', 'settings', 'event_id', 'event_type', 'event_payload'],
-    ['settings', '', '', '', ...keys.map(() => ''), report.from, report.to, report.settings, '', '', ''],
-    ...report.daily.map((day) => ['daily', day.date, '', '', ...keys.map((key) => day[key]), report.from, report.to, report.settings, '', '', '']),
-    ...report.personas.map((person) => ['persona', '', person.id, person.username, ...keys.map((key) => person[key] ?? 0), report.from, report.to, report.settings, '', '', '']),
+    ['row_type', 'date', 'persona_id', 'username', ...keys, 'from', 'to', 'settings', 'usage_snapshot', 'event_id', 'event_type', 'event_payload'],
+    ['settings', '', '', '', ...keys.map(() => ''), report.from, report.to, report.settings, report.usage, '', '', ''],
+    ...report.daily.map((day) => ['daily', day.date, '', '', ...keys.map((key) => day[key]), report.from, report.to, report.settings, report.usage, '', '', '']),
+    ...report.personas.map((person) => ['persona', '', person.id, person.username, ...keys.map((key) => person[key] ?? 0), report.from, report.to, report.settings, report.usage, '', '', '']),
     ...report.events.map((event) => ['event', event.createdAt.slice(0, 10), event.actorId, event.username,
-      ...keys.map(() => ''), report.from, report.to, report.settings, event.id, event.type, event.payload]),
+      ...keys.map(() => ''), report.from, report.to, report.settings, report.usage, event.id, event.type, event.payload]),
   ];
   return rows.map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
