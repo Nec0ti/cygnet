@@ -9,14 +9,14 @@ import { Simulator } from './simulator.js';
 const temp=mkdtempSync(join(tmpdir(),'cygnet-image-check-'));
 const db=openStore(':memory:');
 const due=new Date().toISOString();
-let target='human',nextKind='dm',generated=0,applied=[];
+let target='human',nextKind='dm',generated=0,applied=[],typingObserved=false;
 const runner={
   runOrchestrator:async()=>({response:JSON.stringify({assignments:[{personaId:'u0001',kind:nextKind,targetId:target}]})}),
-  runPersona:async()=>({response:JSON.stringify(nextKind==='evade_block'
+  runPersona:async()=>{if(nextKind==='dm'&&target==='human')typingObserved=Date.parse(db.prepare("SELECT typing_until FROM accounts WHERE id='u0001'").get().typing_until)>Date.now();return {response:JSON.stringify(nextKind==='evade_block'
     ?{profile:{name:'Alternate Test Person',username:'alternate.test.person',bio:'A new local identity.'},content:'Hi.'}
     :['post','story'].includes(nextKind)
       ?{caption:`Live ${nextKind} from the persona.`,imagePrompt:`A unique live ${nextKind} image.`}
-      :{content:'Here is the photo you asked for.',imagePrompt:'A candid photo of the sender making coffee at home.'})}),
+      :{content:'Here is the photo you asked for.',imagePrompt:'A candid photo of the sender making coffee at home.'})};},
   generatePostImage:async({outputName})=>{generated++;const path=join(temp,outputName);writeFileSync(path,`unique image ${generated}`);return {path};},
 };
 try {
@@ -25,6 +25,8 @@ try {
   db.prepare("UPDATE accounts SET dm_due_at=?,activity_json=? WHERE id='u0001'").run(due,JSON.stringify({dmInitiation:'frequent'}));
   const simulator=new Simulator({db,applyAction:(action)=>{applied.push(action);return {ok:true};},mediaDir:temp,dataDir:temp,runner,now:()=>Date.now()});
   assert.equal((await simulator.tick()).processed,1);
+  assert.ok(typingObserved,'a persona displays typing while composing a human DM');
+  assert.equal(db.prepare("SELECT typing_until FROM accounts WHERE id='u0001'").get().typing_until,null,'typing clears after the message is sent');
   assert.equal(applied[0].type,'message.send');
   assert.equal(applied[0].payload.recipientId,'human');
   assert.match(applied[0].payload.mediaFilename,/\.png$/);

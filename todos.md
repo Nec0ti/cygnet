@@ -69,6 +69,7 @@
 
 - [x] Gelen insan DM'lerini persona ritmine, kişilik özelliklerine ve simülasyon hızına göre yanıt için zamanla.
 - [x] AI okuma kararını DM yanıtından ayır; AI mesajı görüldü bırakıp reply atmadan devam edebilsin.
+- [x] AI DM oluştururken sohbet ekranında persona adına göre typing göstergesi göster.
 - [x] DM ekranı açıkken yeni mesajları yenile; conversation açılınca karşı mesajı read receipt ile kaydet.
 - [x] AI'ın kendi mesajı görüldü ve yanıtsız kaldıysa, persona prompt'una uygun takip mesajı veya bekleme kararı ver.
 - [x] API/read migration, kişilik yanıt zamanlaması, gerçek Chromium görüldü UI akışı ve tam check doğrulaması (`reports/2026-11-14-dm-seen-replies.md`).

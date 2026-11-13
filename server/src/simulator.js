@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { CodexRunner } from '../../engine/codex-runner.mjs';
-import { logEvent, readSettings } from './store.js';
+import { HUMAN_ID, logEvent, readSettings } from './store.js';
 import { activeCondition, ensureExperimentSchema } from './experiments.js';
 import { visibleStoriesFor } from './visibility.js';
 
@@ -157,7 +157,10 @@ export class Simulator {
       const lookup={posts:candidates.postIds,accounts:candidates.accountIds,blocked:candidates.blocked};
       const assignments=validateActionPlan(waitForInvalidAccountTargets(plan,lookup),dueByPersona,lookup);
       const byId=new Map(selected.map(({account})=>[account.id,account]));
-      const settled=await Promise.allSettled(assignments.map((assignment)=>this.#execute(assignment,byId.get(assignment.personaId),candidates)));
+      const settled=await Promise.allSettled(assignments.map(async(assignment)=>{
+        try { return await this.#execute(assignment,byId.get(assignment.personaId),candidates); }
+        finally { this.db.prepare('UPDATE accounts SET typing_until=NULL WHERE id=?').run(assignment.personaId); }
+      }));
       const failed=settled.find((result)=>result.status==='rejected');
       if(failed) throw failed.reason;
       const results=settled.map((result)=>result.value);
@@ -211,6 +214,7 @@ export class Simulator {
       return this.applyAction({type:'persona.alias.message',payload:{accountId:account.id,recipientId:'human',content,profile,avatarFilename:avatar.filename}});
     } else {
       if(assignment.kind==='dm') {
+        if(targetId===HUMAN_ID) this.db.prepare('UPDATE accounts SET typing_until=? WHERE id=?').run(new Date(Date.now()+10*60_000).toISOString(),account.id);
         const convo=this.db.prepare(`SELECT c.id FROM conversations c JOIN conversation_members a ON a.conversation_id=c.id AND a.account_id=? JOIN conversation_members b ON b.conversation_id=c.id AND b.account_id=?`).get(account.id,targetId);
         if(convo) this.applyAction({type:'message.read',payload:{actorId:account.id,conversationId:convo.id}});
       }

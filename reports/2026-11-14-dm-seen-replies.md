@@ -14,9 +14,10 @@
 ## Changes
 
 - Incoming AI DMs now schedule separate read and reply opportunities. The read action opens unread conversations and records seen without sending a reply. DM reply opportunities use a 2–35 minute trait-based delay (shyness, sociability, impulsivity), scaled by simulation speed; the orchestrator still decides whether the persona replies or waits.
+- The DM view shows the persona's typing indicator while it generates a response; simulator self-check verifies the active state and its cleanup after the tick.
 - The Messages page refreshes while open. Opening a conversation persists `read_at`; AI agents can also mark incoming messages read independently from replying.
 - If a persona's message was read by the human and no reply followed, its later DM prompt tells the agent it may mention being left on read or wait, depending on personality. It must not guilt, threaten, or repeatedly pressure.
-- Existing databases migrate `messages.read_at`, `accounts.read_due_at`, and `accounts.seen_due_at` without clearing conversations.
+- Existing databases migrate `messages.read_at`, `accounts.read_due_at`, `accounts.seen_due_at`, and `accounts.typing_until` without clearing conversations.
 
 ## Verification
 

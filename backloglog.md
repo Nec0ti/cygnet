@@ -12,6 +12,13 @@
 - Doğrulama: `./cygnet.sh check` geçti; gerçek Chromium E2E 21/21 geçti. Simülatör self-check'i `read` eyleminin okundu kaydedip DM üretmediğini doğruladı.
 - İlgili rapor: `reports/2026-11-14-dm-seen-replies.md`.
 
+## 2026-11-14 — DM typing göstergesi (tamamlandı)
+
+- Kullanıcı isteği: AI cevap oluştururken DM ekranında `typing...` bilgisi göster.
+- Persona insan hesabına DM üretirken `typing_until` başlatılır; bootstrap ve açık sohbetin beş saniyelik yenilemesi bunu UI'a taşır. Simülatör turu bitince durum temizlenir; eski DB'lere kolon migration ile eklenir.
+- Doğrulama: `./cygnet.sh check` geçti; Chromium E2E 21/21 geçti; simülatör self-check typing durumunun üretim sırasında açık, tur sonunda kapalı olduğunu doğruladı.
+- İlgili rapor: `reports/2026-11-14-dm-seen-replies.md`.
+
 ## 2026-11-14 — DM yanıt ritmi ve görüldü bilgisi tamamlandı
 
 - Kullanıcı: AI takipleri başlıyor ama DM cevaplarının görünürlüğü/yanıtı belirsiz; DM arayüzüne görüldü bilgisi ve kişiliğe uygun “seen” tepkisi eklensin.

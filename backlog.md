@@ -3,7 +3,7 @@
 ## Durum özeti
 
 - Aşama: Cygnet 2.4 DM yanıtı ve görüldü akışı tamamlandı
-- Son tamamlanan iş: AI bağımsız `read` eylemiyle DM'yi görüldü bırakabiliyor; okuma ve yanıt ayrı zamanlanıyor. `./cygnet.sh check` geçti, Chromium E2E 21/21.
+- Son tamamlanan iş: AI bağımsız `read` eylemiyle DM'yi görüldü bırakabiliyor; ayrıca yanıt üretirken typing göstergesi var. `./cygnet.sh check` geçti, Chromium E2E 21/21.
 - Şu an yapılan iş: bu değişikliği private `main` dalına commit/push etme
 - Sıradaki adım: uygulamayı yeniden başlat; gelen DM'lerde persona önce okuyabilir, yanıt kararı ayrı işler
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor

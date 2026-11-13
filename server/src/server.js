@@ -43,6 +43,7 @@ function accountView(row, counts = null) {
     id: row.id, name: row.name, username: row.username, bio: row.bio,
     pronouns: row.pronouns, age: row.age, country: row.country,
     isHuman: Boolean(row.is_human), tone: row.tone,
+    typingUntil: row.typing_until && Date.parse(row.typing_until) > Date.now() ? row.typing_until : null,
     traits: JSON.parse(row.traits_json || '{}'),
     avatarUrl: row.avatar_filename ? `/media/${encodeURIComponent(row.avatar_filename)}` : null,
     isPaused: Boolean(row.is_paused),
