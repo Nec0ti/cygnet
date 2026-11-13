@@ -2,14 +2,14 @@
 
 ## Durum özeti
 
-- Aşama: Cygnet 2.3 boş başlangıç ve canlı persona feed'i tamamlandı
-- Son tamamlanan iş: `./cygnet.sh check` geçti; Chromium E2E 20/20; 100/1.000 profil benchmark correctness 5/5 ve sıfır HTTP hatası
-- Şu an yapılan iş: değişiklikleri raporlayıp private main'e commit/push etme
-- Sıradaki adım: uygulama sunucusunu yeni kodla yeniden başlat, iki aşamalı reseti yap ve deneyi boş feed ile sürdür
+- Aşama: Cygnet 2.3 boş başlangıç ve canlı persona feed'i tamamlandı; orkestratör geçersiz hedef retry düzeltmesi doğrulandı
+- Son tamamlanan iş: `./cygnet.sh check` geçti; Chromium E2E 20/20; 100/1.000 profil benchmark correctness 5/5; invalid-target recovery self-check geçti
+- Şu an yapılan iş: retry düzeltmesini raporlayıp private main'e commit/push etme
+- Sıradaki adım: uygulama sunucusunu yeni kodla yeniden başlat; mevcut retry alanları başlangıçta temizlenir ve simülasyon yeniden denenir
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
-- Sonuç raporu: `reports/2026-11-14-empty-launch-verification.md`
+- Sonuç raporları: `reports/2026-11-14-empty-launch-verification.md`, `reports/2026-11-14-invalid-orchestrator-target.md`
 
 ## İşler
 

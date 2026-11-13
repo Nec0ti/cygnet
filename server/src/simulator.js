@@ -64,6 +64,16 @@ export function validateActionPlan(plan, dueByPersona, lookup) {
   });
 }
 
+function waitForInvalidAccountTargets(plan, lookup) {
+  if(!Array.isArray(plan?.assignments)) return plan;
+  return {...plan,assignments:plan.assignments.map((item)=>{
+    if(!item||typeof item!=='object'||!['dm','follow'].includes(item.kind)) return item;
+    const invalid=!lookup.accounts.has(item.targetId)||item.targetId===item.personaId
+      ||(item.kind==='dm'&&lookup.blocked.has(`${item.personaId}:${item.targetId}`));
+    return invalid?{personaId:item.personaId,kind:'wait'}:item;
+  })};
+}
+
 function jsonValue(text) {
   const value=parseModelJson(text);
   if(!value||typeof value!=='object'||Array.isArray(value)) throw new TypeError('Expected a JSON object');
@@ -89,6 +99,8 @@ export class Simulator {
   constructor({db,applyAction,mediaDir,dataDir=null,runner=null,tickMs=60_000,maxPerTick=10,now=()=>Date.now()}={}) {
     if(!db||typeof applyAction!=='function'||!mediaDir) throw new TypeError('db, applyAction, and mediaDir are required');
     ensureExperimentSchema(db);
+    // Clear the previous invalid-target backoff so the fixed planner can retry immediately after restart.
+    db.prepare("UPDATE accounts SET retry_at=NULL,retry_count=0,retry_error=NULL WHERE retry_error='Plan references an invalid account'").run();
     this.db=db; this.applyAction=applyAction; this.mediaDir=mediaDir; this.now=now;
     this.maxPerTick=Math.max(1,Math.min(10,maxPerTick));
     this.tickMs=tickMs;
@@ -136,10 +148,11 @@ export class Simulator {
     try {
       const blockedPairs=[...candidates.blocked].filter((pair)=>selected.some(({account})=>pair.startsWith(`${account.id}:`)));
       const friendsById=new Map(selected.map(({account})=>[account.id,this.db.prepare("SELECT a.id,a.username FROM edges e JOIN accounts a ON a.id=e.target_id WHERE e.source_id=? AND e.kind='friend' AND a.is_human=0 ORDER BY a.username").all(account.id).filter(({id})=>candidates.accountIds.has(id)).map(({username})=>username)]));
-      const instructions=`Assign exactly one action to every listed persona, including an explicit "wait" when appropriate. Do not omit any persona. Only use each persona's allowedActions. When no recent posts are listed, do not choose like or comment. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. For a due DM, prefer an unblocked AI friend listed for that persona when it fits their personality; do not default to the human account for every conversation. When follow is allowed, socially outgoing personas that do not already follow the human should consider following the human; quieter personas may follow AI friends instead. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),followsHuman:Boolean(this.db.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id='human' AND kind='follow'").get(account.id)),friends:friendsById.get(account.id)||[],allowedActions:[...dueByPersona.get(account.id)]}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
+      const instructions=`Assign exactly one action to every listed persona, including an explicit "wait" when appropriate. Do not omit any persona. Only use each persona's allowedActions. Never target the acting persona itself; for dm/follow, use only IDs listed in Possible accounts and choose wait if no suitable target exists. When no recent posts are listed, do not choose like or comment. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. For a due DM, prefer an unblocked AI friend listed for that persona when it fits their personality; do not default to the human account for every conversation. When follow is allowed, socially outgoing personas that do not already follow the human should consider following the human; quieter personas may follow AI friends instead. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),followsHuman:Boolean(this.db.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id='human' AND kind='follow'").get(account.id)),friends:friendsById.get(account.id)||[],allowedActions:[...dueByPersona.get(account.id)]}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
       const orchestrator=await this.runner.runOrchestrator({instructions,model:ORCHESTRATOR_MODEL,effort:'medium'});
       const plan=jsonValue(orchestrator.response);
-      const assignments=validateActionPlan(plan,dueByPersona,{posts:candidates.postIds,accounts:candidates.accountIds,blocked:candidates.blocked});
+      const lookup={posts:candidates.postIds,accounts:candidates.accountIds,blocked:candidates.blocked};
+      const assignments=validateActionPlan(waitForInvalidAccountTargets(plan,lookup),dueByPersona,lookup);
       const byId=new Map(selected.map(({account})=>[account.id,account]));
       const settled=await Promise.allSettled(assignments.map((assignment)=>this.#execute(assignment,byId.get(assignment.personaId),candidates)));
       const failed=settled.find((result)=>result.status==='rejected');

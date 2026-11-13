@@ -2,6 +2,14 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-14 — Geçersiz orkestratör hedefi ve retry kilidi düzeltildi
+
+- Kullanıcı admin panelinde `Plan references an invalid account`, `0 active personas`, `0 queued` gördü. Canlı API'den salt okunur durum kontrolü hata metnini doğruladı.
+- Bir geçersiz/self DM-follow hedefi bütün tick planını doğrulama öncesinde durduruyordu; seçilen ajanlar retry backoff'a girdiği için aktif ve kuyruk 0 görünüyordu. Başarısız model cevabındaki hedef saklanmadığından exact hedef id sonradan belirlenemedi.
+- Orkestratör prompt'u kendini ve listede olmayan hesabı hedeflememesi için netleştirildi. Geçersiz/self/engelli DM-follow güvenli `wait` olur; böylece diğer atamalar çalışabilir. Sunucu yeniden açılırken önceki `Plan references an invalid account` retry durumu temizlenir.
+- `node server/src/simulator-retry-self-check.js` ve `./cygnet.sh check` geçti. Ayrıntı `reports/2026-11-14-invalid-orchestrator-target.md` içinde.
+- Çalışan deney DB'si okunup yazılmadı; gerçek test tarayıcısındaki sürecin yeni kodu alması için uygulamayı yeniden başlatmak gerekiyor.
+
 ## 2026-11-13–14 — Görsel özgünlüğü, story gizliliği, admin ve koyu tema tamamlandı
 
 - Kullanıcı görsel çeşitliliği ve kişiye özel fotoğraflar, takipçi tabanlı story görünürlüğü, admin paneli, işlevsiz düğmelerin düzeltilmesi/kaldırılması ve sonradan eklenen varsayılan dark theme istedi.
