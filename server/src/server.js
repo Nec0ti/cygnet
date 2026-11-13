@@ -5,6 +5,7 @@ import { basename, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction } from './store.js';
 import { seedStore } from './seed.js';
+import { Simulator } from './simulator.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
@@ -118,6 +119,12 @@ function mediaFile(media) {
   writeFileSync(join(MEDIA_DIR, filename), bytes, { flag:'wx', mode:0o600 });
   return filename;
 }
+function existingMedia(filename) {
+  if(typeof filename!=='string' || basename(filename)!==filename || !/^[a-zA-Z0-9._-]+\.(?:png|jpe?g|webp|gif)$/i.test(filename) || !existsSync(join(MEDIA_DIR,filename))) {
+    throw Object.assign(new Error('Generated media file not found'),{status:400});
+  }
+  return filename;
+}
 function notify(account, actor, type, entity) {
   if (account === actor) return;
   DB.prepare(`INSERT INTO notifications(id,account_id,actor_id,type,entity_id,created_at)
@@ -132,13 +139,15 @@ function makeSystemMd(accountIdValue) {
   const friends = DB.prepare(`SELECT a.username FROM edges e JOIN accounts a ON a.id=e.target_id
     WHERE e.source_id=? AND e.kind='friend' ORDER BY a.username`).all(row.id).map((x)=>`- @${x.username}`).join('\n') || '- No close friends yet.';
   const traits = Object.entries(JSON.parse(row.traits_json || '{}')).map(([key,value])=>`- ${key}: ${value}/100`).join('\n');
-  const md = `# ${row.name} (@${row.username})\n\n## Identity\n\n- Age: ${row.age}\n- Country: ${row.country}\n- Pronouns: ${row.pronouns}\n- Bio: ${row.bio}\n- Conversation tone: ${row.tone}\n\n## Personality (0-100)\n\n${traits}\n\n## Friends\n\n${friends}\n\n## Extra notes\n\n${row.extra_notes || '- None.'}\n\n## Language\n\n- Write all platform content in English.\n`;
+  const activity=JSON.parse(row.activity_json||'{}');
+  const minor=row.age<18?'- Under 18: keep interactions age-appropriate; no sexual or erotic conversation, sexting, or sexual roleplay. Never engage in an adult-minor sexual approach.\n':'';
+  const md = `# ${row.name} (@${row.username})\n\n## Identity\n\n- Age: ${row.age}\n- Country: ${row.country}\n- Pronouns: ${row.pronouns}\n- Bio: ${row.bio}\n- Conversation tone: ${row.tone}\n\n## Personality (0-100)\n\n${traits}\n\n## Friends\n\n${friends}\n\n## Activity rhythm\n- Posts: ${activity.postMode||'occasional'}${activity.postIntervalHours?`, every ${activity.postIntervalHours} hours`:''}\n- Stories: every ${activity.storyIntervalHours||24} hours\n- DM initiation: ${activity.dmInitiation||'only_after_contact'}\n\n## Extra notes\n\n${row.extra_notes || '- None.'}\n\n## Content boundaries\n- No sexual content in public posts, comments, or public image prompts.\n- Never create sexual imagery.\n${minor}- Write all platform content in English.\n`;
   DB.prepare('UPDATE accounts SET system_md=? WHERE id=?').run(md,row.id);
   saveSystemFile(DB,row.id);
   return md;
 }
 
-function action({ type, payload = {} }) {
+export function action({ type, payload = {} }) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw Object.assign(new Error('payload must be an object'),{status:400});
   let result;
   transaction(DB, () => {
@@ -161,7 +170,7 @@ function action({ type, payload = {} }) {
       case 'post.create': case 'story.create': {
         const author = accountId(payload.accountId || payload.actorId || HUMAN_ID);
         const caption = requireText(payload.caption ?? '', 'caption', 5000, true);
-        const filename = mediaFile(payload.media);
+        const filename = payload.mediaFilename ? existingMedia(payload.mediaFilename) : mediaFile(payload.media);
         const kind = type === 'story.create' ? 'story' : 'post';
         const postId = id(); const createdAt=isoNow();
         DB.prepare('INSERT INTO posts(id,account_id,caption,media_filename,kind,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
@@ -226,6 +235,7 @@ function action({ type, payload = {} }) {
         DB.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,media_filename,created_at) VALUES(?,?,?,?,?,?)')
           .run(msgId,convoId,sender,content,filename,isoNow());
         notify(recipient,sender,'message',msgId); logEvent(DB,sender,'message.sent',{conversationId:convoId,messageId:msgId,hasMedia:Boolean(filename)});
+        DB.prepare('UPDATE accounts SET last_contact_at=?,retry_at=NULL WHERE id=? AND is_human=0').run(isoNow(),recipient);
         result={id:msgId,conversationId:convoId}; break;
       }
       case 'message.delete': {
@@ -291,6 +301,7 @@ const server=createServer(async (req,res)=>{
   try {
     const url=new URL(req.url,'http://127.0.0.1');
     if(req.method==='GET' && url.pathname==='/api/bootstrap') return send(res,200,bootstrap(),cors);
+    if(req.method==='GET' && url.pathname==='/api/simulator') return send(res,200,simulator.status,cors);
     if(req.method==='GET' && url.pathname==='/api/export') {
       const tables=['accounts','edges','posts','likes','comments','conversations','conversation_members','messages','notifications','reports','events'];
       return send(res,200,Object.fromEntries(tables.map((table)=>[table,DB.prepare(`SELECT * FROM ${table}`).all()])),cors);
@@ -315,5 +326,6 @@ const server=createServer(async (req,res)=>{
   }
 });
 
-server.listen(PORT,'127.0.0.1',()=>console.log(`Cygnet API listening on http://127.0.0.1:${PORT}`));
-for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{ server.close(()=>{DB.close();process.exit(0);}); });
+const simulator=new Simulator({db:DB,applyAction:action,mediaDir:MEDIA_DIR});
+server.listen(PORT,'127.0.0.1',()=>{ simulator.start(); console.log(`Cygnet API listening on http://127.0.0.1:${PORT}`); });
+for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{ simulator.stop(); server.close(()=>{DB.close();process.exit(0);}); });

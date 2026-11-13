@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "seed": "node src/seed.js",
-    "check": "node src/self-check.js"
+    "check": "node src/self-check.js && node src/simulator-self-check.js"
   },
   "engines": { "node": ">=22.5" }
 }

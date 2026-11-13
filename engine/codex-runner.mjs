@@ -138,7 +138,7 @@ export class CodexRunner {
 
   async runOrchestrator({ instructions, model = 'gpt-6-luna', effort = 'medium' }) {
     if (!instructions) throw new TypeError('instructions are required');
-    return this.#run(`You are the Cygnet orchestrator. Choose bounded platform actions from the supplied local state. Return only valid JSON matching the requested action shape. Do not write files or run shell commands. Never propose sexual/erotic interaction involving anyone under 18; age-appropriate relationship and health discussion must remain non-erotic. Never generate sexual imagery.\n\n${instructions}`, { model, effort, countedWorker: false });
+    return this.#run(`You are the Cygnet orchestrator. Choose bounded platform actions from the supplied local state. Return only valid JSON matching the requested action shape. Do not write files or run shell commands. Never propose sexual/erotic interaction involving anyone under 18; age-appropriate relationship and health discussion must remain non-erotic. Public posts, stories, comments, and image briefs must not be sexual. Never generate sexual imagery.\n\n${instructions}`, { model, effort, countedWorker: false });
   }
 
   async generatePostImage({ prompt, outputName = `${randomUUID()}.png`, model = 'gpt-6-luna', effort = 'medium' }) {
