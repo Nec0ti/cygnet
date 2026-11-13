@@ -246,7 +246,7 @@ function App() {
 
     {showCompose && <ComposeModal kind={composeKind} onClose={() => setShowCompose(false)} onCreate={createPost} />}
     {viewStory && <StoryModal story={viewStory} account={accountById.get(viewStory.accountId) || data.me} onClose={() => setViewStory(null)} />}
-    {showEdit && <EditModal me={data.me} onClose={() => setShowEdit(false)} onSave={(name, bio) => { setData((old) => ({ ...old, me: { ...old.me, name, bio } })); void act('profile.update', { patch: { name, bio } }); setShowEdit(false); setToast('Profile updated') }} />}
+    {showEdit && <EditModal me={data.me} onClose={() => setShowEdit(false)} onSave={(patch) => { setData((old) => ({ ...old, me: { ...old.me, ...patch } })); void act('profile.update', { patch }); setShowEdit(false); setToast('Profile updated') }} />}
     {mocked && <div className="mode-badge" role="status">Demo data</div>}
     {toast && <div className="toast" role="status">{toast}</div>}
   </div>
@@ -269,10 +269,13 @@ function ComposeModal({ kind, onClose, onCreate }: { kind: 'post' | 'story'; onC
   return <div className="modal-backdrop" onClick={onClose}><section className="compose-modal" onClick={(e) => e.stopPropagation()}><header><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button><b>Create {kind}</b><button className="text-link" disabled={!caption.trim() && !mediaData} onClick={() => onCreate(caption, kind, mediaData || undefined)}>Share</button></header><div className="compose-content">{image ? <img src={image} alt="Selected preview"/> : <div className="upload-placeholder"><span className="upload-icon"><Icon name="camera" size={30}/></span><h2>Share a little moment</h2><p>Choose an image from your device</p><label className="primary-button">Select from computer<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setImage(URL.createObjectURL(file)); setMediaData(await readDataUrl(file)) } }}/></label></div>}<textarea value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={2200} placeholder="Write a caption..."/><span className="character-count">{caption.length}/2,200</span></div></section></div>
 }
 
-function EditModal({ me, onClose, onSave }: { me: Account; onClose: () => void; onSave: (name: string, bio: string) => void }) {
+function EditModal({ me, onClose, onSave }: { me: Account; onClose: () => void; onSave: (patch: { name: string; username: string; bio: string; pronouns: string }) => void }) {
   const [name, setName] = useState(me.name)
+  const [username, setUsername] = useState(me.username)
   const [bio, setBio] = useState(me.bio || '')
-  return <div className="modal-backdrop" onClick={onClose}><section className="edit-modal" onClick={(e) => e.stopPropagation()}><header><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button><b>Edit profile</b><button className="text-link" onClick={() => onSave(name, bio)}>Done</button></header><label>Name<input value={name} onChange={(e) => setName(e.target.value)} maxLength={60}/></label><label>Bio<textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={150}/></label><small>Changes are saved locally to your profile.</small></section></div>
+  const [pronouns, setPronouns] = useState(me.pronouns || '')
+  const validUsername = /^[a-z0-9._]+$/.test(username)
+  return <div className="modal-backdrop" onClick={onClose}><section className="edit-modal" onClick={(e) => e.stopPropagation()}><header><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button><b>Edit profile</b><button className="text-link" disabled={!validUsername} onClick={() => onSave({ name, username, bio, pronouns })}>Done</button></header><label>Name<input value={name} onChange={(e) => setName(e.target.value)} maxLength={80}/></label><label>Username<input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} maxLength={30}/></label>{!validUsername && <small>Use lowercase letters, numbers, dots, and underscores.</small>}<label>Pronouns<input value={pronouns} onChange={(e) => setPronouns(e.target.value)} maxLength={40}/></label><label>Bio<textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={150}/></label><small>Changes are saved locally to your profile.</small></section></div>
 }
 
 function StoryModal({ story, account, onClose }: { story: Story; account: Account; onClose: () => void }) {
