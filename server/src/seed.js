@@ -1,117 +1,93 @@
 import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction } from './store.js';
+import { createInitialProfiles } from '../../seed/generate.mjs';
 import { randomUUID } from 'node:crypto';
 
-const countryPool = [
-  ['United Kingdom', 5], ['Canada', 5], ['Australia', 4], ['India', 4], ['Brazil', 3],
-  ['Japan', 3], ['Germany', 3], ['France', 2], ['Nigeria', 2], ['Mexico', 2],
-  ['South Korea', 2], ['Türkiye', 2], ['Philippines', 2], ['South Africa', 1],
-];
-const firstNames = ['Avery','Jordan','Taylor','Morgan','Riley','Cameron','Casey','Quinn','Alex','Jamie','Rowan','Skyler','Sage','Noah','Maya','Liam','Olivia','Ethan','Emma','Leo','Amara','Zara','Aisha','Kai','Yuki','Hana','Arjun','Priya','Mateo','Lucia','Sofia','Luca','Theo','Nia','Tariq','Min','Jae','Samira','Diego','Ines'];
-const lastNames = ['Carter','Brooks','Reed','Hayes','Bennett','Collins','Rivera','Morgan','Parker','Bailey','Gray','Foster','Kim','Patel','Okafor','Santos','Tanaka','Müller','Dubois','Khan','Silva','Williams','Johnson','Nguyen','Ali','Costa','Martin','Cohen','Brown','Davis'];
-const bios = [
-  'Collecting little moments and overthinking all of them.',
-  'Coffee, playlists, and long walks with no destination.',
-  'Trying to make something good out of ordinary days.',
-  'Bookmarked too many recipes. Still learning to cook.',
-  'Here for art, music, and the occasional bad joke.',
-  'Usually listening more than talking.',
-  'A curious mind with a very full camera roll.',
-  'Making a life that feels like mine.',
-];
 const captions = [
   'A small reset after a long week.', 'The light was too good not to stop.',
   'Found a quiet corner and stayed a while.', 'Current mood: taking the scenic route.',
   'Today needed a little color.', 'No big plan, just a good afternoon.',
   'Saving this one for later.', 'A moment I almost walked past.',
 ];
-const pronouns = ['she/her','he/him','they/them','she/they','he/they'];
-const traitNames = ['warmth','curiosity','nerdiness','sociability','shyness','assertiveness','humor','trust'];
-const countries = countryPool.flatMap(([name, count]) => Array(count).fill(name));
-const now = new Date().toISOString();
-
-function hash(n) { return (n * 48271) % 2147483647; }
-function choose(list, seed) { return list[hash(seed) % list.length]; }
-function makeUsername(name, i) {
-  return `${name.toLowerCase().replace(/[^a-z]/g, '')}${String(i + 1).padStart(3, '0')}`;
+const now = () => new Date().toISOString();
+function afterHours(hours, offsetMinutes = 0) {
+  return hours == null ? null : new Date(Date.now() + hours * 3600000 + offsetMinutes * 60000).toISOString();
 }
-function systemMarkdown(account, friends = []) {
-  const traits = Object.entries(account.traits).map(([name, value]) => `- ${name}: ${value}/100`).join('\n');
-  return `# ${account.name} (@${account.username})\n\n## Identity\n\n- Age: ${account.age}\n- Country: ${account.country}\n- Pronouns: ${account.pronouns}\n- Bio: ${account.bio}\n- Conversation tone: ${account.tone}\n\n## Personality (0-100)\n\n${traits}\n\n## Friends\n\n${friends.length ? friends.map((friend) => `- @${friend}`).join('\n') : '- No close friends yet.'}\n\n## Extra notes\n\n- Write naturally in English.\n- Keep posts and interactions consistent with this profile and recent context.\n`;
+function systemMd(db, profile) {
+  const friends=db.prepare(`SELECT a.id FROM edges e JOIN accounts a ON a.id=e.target_id WHERE e.source_id=? AND e.kind='friend' ORDER BY a.id`)
+    .all(profile.id).map(({id})=>`- [[${id}]]`).join('\n') || '- None yet';
+  const traits=Object.entries(JSON.parse(profile.traits_json || '{}')).map(([name,value])=>`- ${name}: ${value}/100`).join('\n');
+  const activity=JSON.parse(profile.activity_json || '{}');
+  const minor=profile.age<18?'- Under 18: keep interactions age-appropriate; no sexual or erotic conversation, sexting, or sexual roleplay. Never engage in an adult-minor sexual approach.\n':'';
+  const extra=profile.extra_notes || '- None';
+  return `# ${profile.username}\n\n## Identity\n- Name: ${profile.name}\n- Age: ${profile.age}\n- Country: ${profile.country}\n- Pronouns: ${profile.pronouns}\n- Language: English only\n\n## Conversation tone\n${profile.tone}\n\n## Traits (0-100)\n${traits}\n\n## Friends\n${friends}\n\n## Activity rhythm\n- Posts: ${activity.postMode}${activity.postIntervalHours ? `, every ${activity.postIntervalHours} hours` : ''}\n- Stories: every ${activity.storyIntervalHours} hours\n- DM initiation: ${activity.dmInitiation}\n\n## Extra notes\n${extra}\n\n## Content boundaries\n- No sexual content in public posts, comments, or public image prompts.\n- Never create sexual imagery.\n${minor}- All platform text must be in English.\n`;
 }
 
-export function seedStore(db, { dataRoot } = {}) {
-  const count = db.prepare('SELECT COUNT(*) AS n FROM accounts').get().n;
-  if (count) return { seeded: false, accounts: count };
-
-  const accounts = [];
-  for (let i = 0; i < 100; i++) {
-    const name = `${choose(firstNames, i + 13)} ${choose(lastNames, i * 3 + 19)}`;
-    const country = i < 60 ? 'United States' : countries[i - 60];
-    const traits = Object.fromEntries(traitNames.map((trait, j) => [trait, 10 + hash(i * 11 + j * 7) % 81]));
-    const row = {
-      id: `ai-${String(i + 1).padStart(3, '0')}`,
-      name,
-      username: makeUsername(name, i),
-      bio: choose(bios, i * 17 + 3),
-      pronouns: choose(pronouns, i * 13 + 7),
-      age: 16 + hash(i * 31 + 5) % 15,
-      country,
-      traits,
-      tone: choose(['gentle and thoughtful','dry and observant','bright and chatty','measured and direct','playful and curious','quiet and sincere'], i * 23 + 2),
-    };
-    accounts.push(row);
-  }
-  const human = {
-    id: HUMAN_ID, name: 'You', username: 'you', bio: '', pronouns: '', age: null,
-    country: '', traits: {}, tone: 'human',
+function scheduleTimes(profile, index = 0) {
+  const activity=profile.activity;
+  const dmHours=activity.dmInitiation==='frequent'?6:activity.dmInitiation==='occasional'?36:null;
+  return {
+    post_due_at: activity.postIntervalHours==null ? null : afterHours(activity.postIntervalHours,index%17),
+    story_due_at: afterHours(activity.storyIntervalHours,index%29),
+    dm_due_at: afterHours(dmHours,index%13),
+    engagement_due_at: afterHours(0,12+(index*7)%37),
   };
-  const insertAccount = db.prepare(`INSERT INTO accounts
-    (id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,system_md,created_at)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`);
-
-  transaction(db, () => {
-    insertAccount.run(HUMAN_ID, human.name, human.username, human.bio, human.pronouns, null, '', 1, '', '{}', '', now);
-    for (const account of accounts) {
-      insertAccount.run(account.id, account.name, account.username, account.bio, account.pronouns,
-        account.age, account.country, 0, account.tone, JSON.stringify(account.traits), systemMarkdown(account), now);
-    }
-
-    const insertEdge = db.prepare('INSERT INTO edges(source_id,target_id,kind,created_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING');
-    for (let i = 0; i < accounts.length; i++) {
-      const targetCount = 2 + hash(i * 47 + 1) % 5;
-      for (let j = 0; j < targetCount; j++) {
-        const target = accounts[hash(i * 101 + j * 17 + 9) % accounts.length];
-        if (target.id !== accounts[i].id) insertEdge.run(accounts[i].id, target.id, 'friend', now);
-      }
-    }
-
-    const saveSystem = db.prepare('UPDATE accounts SET system_md=? WHERE id=?');
-    for (const account of accounts) {
-      const friends = db.prepare(`SELECT a.username FROM edges e JOIN accounts a ON a.id=e.target_id
-        WHERE e.source_id=? AND e.kind='friend' ORDER BY a.username`).all(account.id).map((x) => x.username);
-      saveSystem.run(systemMarkdown(account, friends), account.id);
-    }
-
-    const addPost = db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at) VALUES(?,?,?,?,?)');
-    for (let i = 0; i < 28; i++) {
-      const account = accounts[hash(i * 37 + 12) % accounts.length];
-      addPost.run(randomUUID(), account.id, choose(captions, i * 9 + 8), 'post', new Date(Date.now() - i * 3600000).toISOString());
-    }
-    const addStory = db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at,expires_at) VALUES(?,?,?,?,?,?)');
-    for (let i = 0; i < 12; i++) {
-      const account = accounts[hash(i * 29 + 6) % accounts.length];
-      addStory.run(randomUUID(), account.id, choose(captions, i * 5 + 31), 'story', now,
-        new Date(Date.now() + 24 * 3600000).toISOString());
-    }
-    logEvent(db, HUMAN_ID, 'population.seeded', { personas: 100, posts: 28, stories: 12 });
-  });
-
-  for (const account of accounts) saveSystemFile(db, account.id, dataRoot);
-  return { seeded: true, accounts: 101 };
 }
 
-if (import.meta.main) {
-  const db = openStore();
+function reconcileExisting(db, { dataRoot } = {}) {
+  const profiles=db.prepare('SELECT * FROM accounts WHERE is_human=0 ORDER BY id').all();
+  for (let i=0;i<profiles.length;i++) {
+    const row=profiles[i];
+    if (!row.activity_json || row.activity_json==='{}') {
+      const traits=JSON.parse(row.traits_json||'{}');
+      const shy=Number(traits.shyness||0), social=Number(traits.sociability||0);
+      const activity=shy>=75&&social<=40
+        ? {postMode:'story_only',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'}
+        : social>=70
+          ? {postMode:'frequent',postIntervalHours:4+((i*3)%5),storyIntervalHours:6,dmInitiation:'frequent'}
+          : {postMode:'occasional',postIntervalHours:24+((i*11)%73),storyIntervalHours:16,dmInitiation:'occasional'};
+      db.prepare(`UPDATE accounts SET activity_json=?,post_due_at=?,story_due_at=?,dm_due_at=?,engagement_due_at=? WHERE id=?`)
+        .run(JSON.stringify(activity), ...Object.values(scheduleTimes({activity},i)), row.id);
+    }
+    const current=db.prepare('SELECT * FROM accounts WHERE id=?').get(row.id);
+    db.prepare('UPDATE accounts SET system_md=? WHERE id=?').run(systemMd(db,current),row.id);
+    saveSystemFile(db,row.id,dataRoot);
+  }
+}
+
+export function seedStore(db, options = {}) {
+  const count = db.prepare('SELECT COUNT(*) AS n FROM accounts').get().n;
+  if (count) {
+    reconcileExisting(db, options);
+    return { seeded: false, accounts: count };
+  }
+  const profiles=createInitialProfiles(options.seed ?? 'cygnet-v1');
+  const current=now();
+  const insertAccount=db.prepare(`INSERT INTO accounts
+    (id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,
+      post_due_at,story_due_at,dm_due_at,engagement_due_at,system_md,created_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  transaction(db,()=>{
+    insertAccount.run(HUMAN_ID,'You','you','','',null,'',1,'','{}','','{}',null,null,null,null,'',current);
+    for(let i=0;i<profiles.length;i++) {
+      const p=profiles[i], scheduled=scheduleTimes(p,i);
+      insertAccount.run(p.id,p.name,p.username,p.bio,p.pronouns,p.age,p.country,0,p.tone,JSON.stringify(p.traits),
+        p.notes.join('\n'),JSON.stringify(p.activity),scheduled.post_due_at,scheduled.story_due_at,scheduled.dm_due_at,
+        scheduled.engagement_due_at,p.systemMd,current);
+    }
+    const insertEdge=db.prepare(`INSERT INTO edges(source_id,target_id,kind,created_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING`);
+    for(const p of profiles) for(const friend of p.friends) insertEdge.run(p.id,friend,'friend',current);
+    const post=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at) VALUES(?,?,?,?,?)');
+    for(let i=0;i<28;i++) post.run(randomUUID(),profiles[(i*37+12)%profiles.length].id,captions[i%captions.length],'post',new Date(Date.now()-i*3600000).toISOString());
+    const story=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at,expires_at) VALUES(?,?,?,?,?,?)');
+    for(let i=0;i<12;i++) story.run(randomUUID(),profiles[(i*29+6)%profiles.length].id,captions[(i+3)%captions.length],'story',current,afterHours(24));
+    logEvent(db,HUMAN_ID,'population.seeded',{personas:100,posts:28,stories:12,seed:options.seed??'cygnet-v1'});
+  });
+  for(const p of profiles) saveSystemFile(db,p.id,options.dataRoot);
+  return {seeded:true,accounts:101};
+}
+
+if(import.meta.main) {
+  const db=openStore();
   console.log(JSON.stringify(seedStore(db)));
   db.close();
 }

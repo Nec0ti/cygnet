@@ -17,7 +17,10 @@ export function openStore(path = DB_PATH) {
       bio TEXT NOT NULL DEFAULT '', pronouns TEXT NOT NULL DEFAULT '', age INTEGER,
       country TEXT NOT NULL DEFAULT '', is_human INTEGER NOT NULL DEFAULT 0,
       tone TEXT NOT NULL DEFAULT '', traits_json TEXT NOT NULL DEFAULT '{}',
-      extra_notes TEXT NOT NULL DEFAULT '', system_md TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+      extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
+      post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
+      last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT,
+      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS edges (
       source_id TEXT NOT NULL REFERENCES accounts(id), target_id TEXT NOT NULL REFERENCES accounts(id),
@@ -65,6 +68,12 @@ export function openStore(path = DB_PATH) {
     CREATE INDEX IF NOT EXISTS posts_created_idx ON posts(created_at DESC);
     CREATE INDEX IF NOT EXISTS events_created_idx ON events(created_at DESC);
   `);
+  const columns = new Set(db.prepare('PRAGMA table_info(accounts)').all().map((column) => column.name));
+  for (const [name, definition] of Object.entries({
+    activity_json: "TEXT NOT NULL DEFAULT '{}'", post_due_at: 'TEXT', story_due_at: 'TEXT',
+    dm_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
+    last_dm_at: 'TEXT', last_contact_at: 'TEXT', retry_at: 'TEXT',
+  })) if (!columns.has(name)) db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${definition}`);
   return db;
 }
 
