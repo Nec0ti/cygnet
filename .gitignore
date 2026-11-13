@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite3
+*.db
+data/
+uploads/
+generated_images/
+node_modules/
+dist/
+.DS_Store
