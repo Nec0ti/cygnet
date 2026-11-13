@@ -1,0 +1,12 @@
+{
+  "name": "cygnet-local-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "check": "node src/self-check.js"
+  },
+  "engines": { "node": ">=22.5" }
+}
