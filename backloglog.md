@@ -9,6 +9,7 @@
 - Sürüm planı `todos.md` içine eklendi.
 - Özel GitHub deposu açıldı ve başlangıç dokümanları commit/push edildi (`2a98fb4`).
 - Codex CLI yerleşik `imagegen` ile deneme görseli üretildi ve görsel olarak kontrol edildi. CLI dosyayı `~/.codex/generated_images/<thread-id>/` altına yazıyor; Cygnet sunucusu yerel medya klasörüne kopyalamalı.
+- Yerel Codex CLI oturumu ChatGPT hesabıyla giriş yapmış; config'te `gpt-6-luna` var. Runtime görevleri için reasoning effort açıkça ayarlanmalı.
 - Sıradaki adım: uygulama iskeleti, çekirdek akış ve Codex CLI işçisini entegre edip doğrulamak.
 
 ## 2026-11-13 — Proje başlangıcı

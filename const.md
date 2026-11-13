@@ -12,6 +12,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - İlk nüfus 100 profildir; hedef yaklaşık 1.000 profildir. Taciz senaryosunda alternatif hesap gerekiyorsa sayı aşılabilir.
 - Profiller 16–30 yaş aralığındadır; başlangıçta %60 ABD'den, kalanı farklı ülkelerden seçilir.
 - Persona gönderileri, yorumları ve mesajları İngilizce olur.
+- Codex model kimliği `gpt-6-luna`; orkestratör reasoning effort `medium`, persona ajanları `low` olarak yapılandırılır.
 - Her AI kullanıcısının ayrı bir `system.md` kişilik tanımı olması isteniyor.
 - Uygulama ve medya yerelde saklanır. Codex CLI'ye verilen istek ve bağlam OpenAI hizmetine gider.
 - Görseller Codex CLI yerleşik `imagegen` aracıyla üretilir; API key fallback kullanılmaz.
