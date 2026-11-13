@@ -2,6 +2,16 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — Gerçek tarayıcı ve bir saat eşdeğeri simülasyon doğrulaması
+
+- Gerçek Chromium E2E'si 14/14 kontrol grubu geçti. Test akışları profil düzenleme/görüntüleme, takip, post/story görseli, beğeni/yorum/bildirim, DM profili, medya eki/silme, rapor/CSV, kohort ve replay'i kapsıyor.
+- E2E, boş story başlangıcındaki oluşturma girişinin eksik olduğunu ve DM silmede istemci geçici ID'sinin sunucu ID'sine çevrilmediğini buldu; iki kusur düzeltildi.
+- Gerçek Codex CLI ile 12× hızda 300 saniye çalıştırma bir saatlik zamanlama eşdeğerine ulaştı. 100 persona içinde en çok üç persona agent çalıştı; orkestratör bu sınıra dahil değil. Son koşuda iki AI–AI DM, bir imagegen postu, sıfır simülatör hatası ve sıfır görsel üretim hatası gözlendi.
+- Orkestratör istemindeki eksiksiz atama kuralı açıklaştırıldı; test edilen arkadaş grafiği uygun DM hedefi bağlamı olarak eklendi. Görsel gerçek PNG olarak üretildi ve elle incelendi.
+- `./cygnet.sh check`, production build ve launcher kontrolü tekrar geçti. Güncel 100/1.000 persona benchmark'ında ölçülen istek hatası yok; 1.000 persona/100.000 event rapor p95'i tek istekte 4,75 sn ve 10 eşzamanlı istekte 23,97 sn (`reports/benchmark-2026-11-13T19-02.md`).
+- Tam ayrıntı ve sınırlar `reports/2026-11-13-browser-simulation-verification.md` içinde. Simülasyon, browser E2E ve benchmark geçici verileri silindi; `server/data` değiştirilmedi. Yedi günlük deney başlatılmadı.
+- Sıradaki: raporu ve doğrulama değişikliklerini private `main`e gönder; kullanıcı yerel script ile yedi günlük deneyi başlatsın.
+
 ## 2026-11-13 — Kalıcı süre ölçümü, test ve benchmark çalışması
 
 - Kalıcı sunucu çalışma süresi ve sekme odaklı platform kullanım süresi SQLite'a checkpoint ile kaydediliyor; birden fazla açık sekme platform süresini çifte saymıyor.

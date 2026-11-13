@@ -57,6 +57,8 @@
 - [x] Codex CLI text/imagegen iş akışını Cygnet uygulamasına bağlama; görsel dosyası yerel medya klasörüne taşınmalı
 - [x] Uçtan uca yerel kullanım talimatı ve veri dışa aktarma
 - [x] İzole veritabanında tam simülasyon smoke check'i: orkestratör, persona, imagegen, DB postu ve medya HTTP yanıtı
+- [x] Gerçek Chromium'da 14/14 tarayıcı E2E kontrol grubu: akış, post/story görseli, profil, takip, engel, DM, bildirim, araştırma ve deney ekranları
+- [x] Codex CLI orkestratör + üç persona ile 12× hızda beş dakikalık (bir saat eşdeğeri) koşu; AI–AI DM, imagegen postu ve üç kişi eşzamanlılık sınırı doğrulandı
 - [x] Son dokümantasyon commit/push (`69b06bc`)
 - [x] 1.1 deney raporu araçları: JSON/CSV, ayar snapshot'ı, metrikler ve UI
 - [x] 2.0 keşif, erişilebilirlik, kohort karşılaştırma ve salt okunur replay

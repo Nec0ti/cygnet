@@ -501,9 +501,10 @@ const server=createServer(async (req,res)=>{
 });
 
 const simulator=new Simulator({db:DB,applyAction:action,mediaDir:MEDIA_DIR,dataDir:DATA_ROOT,tickMs:TICK_MS});
+const simulatorEnabled=process.env.CYGNET_DISABLE_SIMULATOR!=='1';
 const usageTimer=setInterval(()=>{checkpointServerRuntime(SERVER_RUNTIME);checkpointPlatformUsage(DB);},USAGE_HEARTBEAT_MS);
 usageTimer.unref?.();
-server.listen(PORT,'127.0.0.1',()=>{ simulator.start(); console.log(`Cygnet API listening on http://127.0.0.1:${PORT}`); });
+server.listen(PORT,'127.0.0.1',()=>{ if(simulatorEnabled) simulator.start(); console.log(`Cygnet API listening on http://127.0.0.1:${PORT}`); });
 let shuttingDown=false;
 function shutdown(code=0) {
   if(shuttingDown) return;

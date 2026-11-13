@@ -14,6 +14,9 @@ case "${1:-start}" in
   benchmark)
     (cd server && npm run benchmark)
     ;;
+  browser-e2e)
+    node scripts/browser-e2e.mjs
+    ;;
   start)
     if ! node -e "const [major,minor]=process.versions.node.split('.').map(Number);process.exit(major>22||(major===22&&minor>=5)?0:1)"; then
       echo "Cygnet needs Node.js 22.5 or newer." >&2
@@ -49,5 +52,5 @@ case "${1:-start}" in
     if [[ "${CYGNET_NO_OPEN:-0}" != 1 ]] && command -v xdg-open >/dev/null 2>&1; then xdg-open "$url" >/dev/null 2>&1 || true; fi
     wait -n "$api_pid" "$web_pid"
     ;;
-  *) echo "Usage: ./cygnet.sh [start|check|benchmark]" >&2; exit 2 ;;
+  *) echo "Usage: ./cygnet.sh [start|check|benchmark|browser-e2e]" >&2; exit 2 ;;
 esac

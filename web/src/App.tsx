@@ -249,9 +249,13 @@ function App() {
     setActiveConversation(pendingId)
     setNewRecipientId(null)
     const result = await act('message.send', { ...(conversation ? { conversationId: conversation.id } : { recipientId }), content: message.text, ...(mediaData ? { media: { data: mediaData } } : {}) })
-    if (recipientId && result?.conversationId) {
-      setData((old) => ({ ...old, conversations: old.conversations.map((item) => item.id === pendingId ? { ...item, id: result.conversationId } : item) }))
-      setActiveConversation(result.conversationId)
+    if (result?.id || result?.conversationId) {
+      setData((old) => ({ ...old, conversations: old.conversations.map((item) => item.id === pendingId ? {
+        ...item,
+        id: result.conversationId || item.id,
+        messages: item.messages.map((saved) => saved.id === message.id ? { ...saved, id: result.id || saved.id } : saved),
+      } : item) }))
+      if (result.conversationId) setActiveConversation(result.conversationId)
     }
     setDraft('')
   }
@@ -305,6 +309,10 @@ function App() {
         <section className="feed-column" aria-label="Home feed">
           <div className="mobile-top"><button className="brand small" onClick={() => navigate('home')}><span className="brand-mark">c</span><span className="brand-word">cygnet</span></button><button className="icon-button" onClick={() => navigate('notifications')} aria-label="Notifications"><Icon name="heart"/></button></div>
           <div className="stories-card">
+            {!data.stories.some((story) => story.accountId === data.me.id) && <button className="story" onClick={() => openComposer('story')}>
+              <span className="story-ring"><img src={data.me.avatar} alt="" /></span>
+              <span>Your story</span>
+            </button>}
             {data.stories.map((story) => {
               const account = accountById.get(story.accountId) || data.me
               return <button className="story" key={story.id} onClick={() => story.accountId === data.me.id && !story.image ? openComposer('story') : setViewStory(story)}>
