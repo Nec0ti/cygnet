@@ -10,7 +10,8 @@
 - `server/npm run benchmark`, geçici DB'de 100/1.000 profil, 10 bin/100 bin synthetic event ve 1/10 paralel istekleri ölçtü. İkinci koşuda tüm endpoint'ler 2xx ve iki sette de correctness 5/5 oldu.
 - 1.000 profilde report p95 tek istekte 5.02 sn, concurrency 10'da 38.99 sn; 15.27 MB yanıt üretiyor. Bu ölçülen darboğaz rapora yazıldı. İlk 20'şer ağır endpoint örneklemesi 6 HTTP hatası vermişti; bootstrap/report için örneklem 10'a indirilip tüm benchmark tekrar çalıştırıldı ve hatasız tamamlandı.
 - Kullanım verisi, test DB'leri ve benchmark DB'leri `server/data` dışında tutuldu; gerçek `server/data` değiştirilmedi.
-- Sıradaki: değişiklikleri private `main`e commit/push et; yedi günlük gerçek deney birikimli platform kullanımında sonradan yapılacak.
+- Değişiklikler `ad33a7d` ile commit/push edildi; `git ls-remote` private `origin/main` SHA'sını aynı gösterdi ve çalışma ağacı temizdi.
+- Sıradaki: `./cygnet.sh` ile yerel deneyi dönem dönem çalıştır; platform süresi 604.800.000 ms olduğunda durdur ve gerçek yedi günlük raporu üret.
 
 ## 2026-11-13 — 1.1 ve 2.0 uygulaması tamamlandı
 

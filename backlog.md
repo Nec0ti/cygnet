@@ -2,9 +2,9 @@
 
 ## Durum özeti
 
-- Aşama: 1.1/2.0 üstüne kalıcı süre ölçümü, full test paketi, launcher ve benchmark tamamlandı; değişiklikler bu teslimatta private `main`e gönderilecek
+- Aşama: kalıcı süre ölçümü, full test paketi, launcher ve benchmark `ad33a7d` ile private `main`e gönderildi
 - Son tamamlanan iş: izole API action matrisi ve restart, browser tracker, launcher ve 100/1.000 profil benchmark doğrulaması
-- Şu an yapılan iş: uygulama/doğrulama bitti; commit/push ve teslim handoff'u
+- Şu an yapılan iş: uygulama, doğrulama ve teslim handoff'u tamamlandı
 - Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu tek istekte p95 5,02 sn, 10 eşzamanlı rapor isteğinde p95 38,99 sn; ayrıntı `reports/benchmark-2026-11-13T18-33.md` içinde
