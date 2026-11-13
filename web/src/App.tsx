@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
-type Account = { id: string; name: string; username: string; avatar: string; bio?: string; pronouns?: string; verified?: boolean }
-type Post = { id: string; accountId: string; image: string; caption: string; location?: string; likes: number; comments: number; time: string; liked?: boolean }
+type Account = { id: string; name: string; username: string; avatar: string; bio?: string; pronouns?: string; country?: string; verified?: boolean }
+type Post = { id: string; accountId: string; image: string; caption: string; location?: string; likes: number; comments: number; time: string; createdAt?: string; liked?: boolean }
 type Story = { id: string; accountId: string; image?: string; caption?: string; seen?: boolean }
 type Notification = { id: string; kind: string; accountId: string; text: string; time: string; postImage?: string; isRead?: boolean }
 type Message = { id: string; from: 'me' | 'them'; text: string; time: string; image?: string; deleted?: boolean }
@@ -77,14 +77,14 @@ function fromAPI(raw: any): Bootstrap {
   const account = (value: any): Account => ({
     id: value.id, name: value.name, username: value.username,
     avatar: value.avatarUrl || avatar(value.name.split(/\s+/).map((part: string) => part[0]).join('').slice(0, 2), '#b9c4ad'),
-    bio: value.bio, pronouns: value.pronouns,
+    bio: value.bio, pronouns: value.pronouns, country: value.country,
   })
   const me = account(raw.me)
   const accounts = raw.accounts.map(account)
   const posts = raw.posts.map((post: any, index: number) => ({
     id: post.id, accountId: post.accountId, image: post.mediaUrl || Object.values(photos)[index % 4],
     caption: post.caption, likes: post.likes, comments: post.comments.length,
-    time: relativeTime(post.createdAt), liked: post.likedByMe,
+    time: relativeTime(post.createdAt), createdAt: post.createdAt, liked: post.likedByMe,
   }))
   const postImages = new Map(posts.map((post: Post) => [post.id, post.image]))
   return {
@@ -141,6 +141,8 @@ function App() {
   const [activeConversation, setActiveConversation] = useState('c1')
   const [newRecipientId, setNewRecipientId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [discoveryQuery, setDiscoveryQuery] = useState('')
+  const [feedSort, setFeedSort] = useState<'newest' | 'likes' | 'comments'>('newest')
   const [draft, setDraft] = useState('')
   const [toast, setToast] = useState('')
   const [showCompose, setShowCompose] = useState(false)
@@ -261,20 +263,27 @@ function App() {
     void act('message.delete', { messageId: id })
   }
 
-  const filteredAccounts = data.accounts.filter((account) => `${account.name} ${account.username}`.toLowerCase().includes(query.toLowerCase()))
+  const normalizedDiscoveryQuery = discoveryQuery.trim().toLocaleLowerCase()
+  const filteredAccounts = data.accounts.filter((account) =>
+    `${account.name} ${account.username} ${account.bio || ''} ${account.country || ''} ${account.pronouns || ''}`
+      .toLocaleLowerCase().includes(normalizedDiscoveryQuery))
   const visiblePosts = page === 'profile' ? data.posts.filter((post) => post.accountId === profileId) : data.posts
+  const sortedPosts = [...visiblePosts].sort((a, b) => {
+    if (feedSort === 'likes') return b.likes - a.likes
+    if (feedSort === 'comments') return b.comments - a.comments
+    return b.createdAt && a.createdAt ? b.createdAt.localeCompare(a.createdAt) : visiblePosts.indexOf(a) - visiblePosts.indexOf(b)
+  })
 
   return <div className="app-shell">
     <aside className="rail">
       <button className="brand" onClick={() => navigate('home')} aria-label="Cygnet home"><span className="brand-mark">c</span><span className="brand-word">cygnet</span></button>
       <nav aria-label="Main navigation">
         <NavButton icon="home" label="Home" active={page === 'home'} onClick={() => navigate('home')} />
-        <NavButton icon="search" label="Search" active={page === 'explore'} onClick={() => navigate('explore')} />
-        <NavButton icon="explore" label="Explore" active={false} onClick={() => navigate('explore')} />
+        <NavButton icon="explore" label="Explore people" active={page === 'explore'} onClick={() => navigate('explore')} />
         <NavButton icon="message" label="Messages" active={page === 'messages'} badge="1" onClick={() => navigate('messages')} />
         <NavButton icon="heart" label="Notifications" active={page === 'notifications'} onClick={() => navigate('notifications')} />
         <NavButton icon="plus" label="Create" onClick={() => openComposer()} />
-        <button className={`nav-button ${page === 'profile' && profileId === data.me.id ? 'active' : ''}`} onClick={() => navigate('profile')}><img className="nav-avatar" src={data.me.avatar} alt=""/><span>Profile</span></button>
+        <button className={`nav-button ${page === 'profile' && profileId === data.me.id ? 'active' : ''}`} onClick={() => navigate('profile')} aria-current={page === 'profile' && profileId === data.me.id ? 'page' : undefined}><img className="nav-avatar" src={data.me.avatar} alt=""/><span>Profile</span></button>
         <NavButton icon="grid" label="Activity archive" active={page === 'activity'} onClick={() => setPage('activity')} />
         <NavButton icon="more" label="Simulation settings" active={page === 'settings'} onClick={() => setPage('settings')} />
       </nav>
@@ -295,7 +304,8 @@ function App() {
               </button>
             })}
           </div>
-          <div className="posts-list">{data.posts.map((post) => <PostCard key={post.id} post={post} account={accountById.get(post.accountId) || data.me} onLike={() => toggleLike(post.id)} onProfile={() => openProfile(post.accountId)} onComment={(content) => content ? void act('comment.create', { postId: post.id, content }) : setToast('Write a comment below the post')} />)}</div>
+          <div className="feed-toolbar"><h1>Home</h1><label>Sort posts<select aria-label="Sort posts" value={feedSort} onChange={(event) => setFeedSort(event.target.value as typeof feedSort)}><option value="newest">Newest</option><option value="likes">Most liked</option><option value="comments">Most discussed</option></select></label></div>
+          <div className="posts-list">{sortedPosts.map((post) => <PostCard key={post.id} post={post} account={accountById.get(post.accountId) || data.me} onLike={() => toggleLike(post.id)} onProfile={() => openProfile(post.accountId)} onComment={(content) => content ? void act('comment.create', { postId: post.id, content }) : setToast('Write a comment below the post')} />)}</div>
         </section>
         <aside className="right-column">
           <div className="me-row"><button className="account-link" onClick={() => navigate('profile')}><img src={data.me.avatar} alt=""/><span><b>{data.me.username}</b><small>{data.me.name}</small></span></button><button className="text-link" onClick={() => setShowEdit(true)}>Switch</button></div>
@@ -305,7 +315,7 @@ function App() {
         </aside>
       </div>}
 
-      {page === 'explore' && <section className="subpage"><header className="page-header"><div><p className="eyebrow">DISCOVER</p><h1>Find your people</h1></div><label className="search-box"><Icon name="search" size={19}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search names or usernames"/></label></header><div className="people-grid">{filteredAccounts.map((account) => <button className="person-card" key={account.id} onClick={() => openProfile(account.id)}><img src={account.avatar} alt=""/><b>{account.name}</b><span>@{account.username}</span><small>{account.bio}</small><span className="small-button">View profile</span></button>)}</div></section>}
+      {page === 'explore' && <section className="subpage" aria-labelledby="discover-heading"><header className="page-header"><div><p className="eyebrow">DISCOVER</p><h1 id="discover-heading">Find your people</h1><p className="page-intro">Search profiles by name, username, bio, country, or pronouns.</p></div><label className="search-box"><Icon name="search" size={19}/><input type="search" aria-label="Search profiles" value={discoveryQuery} onChange={(e) => setDiscoveryQuery(e.target.value)} placeholder="Search profiles"/></label></header><p className="search-result-count" role="status" aria-live="polite">{filteredAccounts.length} {filteredAccounts.length === 1 ? 'profile' : 'profiles'} found</p><div className="people-grid">{filteredAccounts.map((account) => <button className="person-card" key={account.id} onClick={() => openProfile(account.id)} aria-label={`View ${account.name}, @${account.username}`}><img src={account.avatar} alt=""/><b>{account.name}</b><span>@{account.username}</span><small>{account.bio}</small>{account.country && <small>{account.country}</small>}<span className="small-button">View profile</span></button>)}</div>{filteredAccounts.length === 0 && <p className="empty-state">No profiles match “{discoveryQuery}”. Try another search.</p>}</section>}
 
       {page === 'messages' && <section className={`messages-page ${mobileChatOpen ? 'chat-open' : ''}`}>
         <div className="inbox-panel"><div className="inbox-title"><div><h2>{data.me.username}</h2><span>Messages</span></div><button className="icon-button" aria-label="New message" onClick={() => setToast('Choose someone from Explore to start a chat')}><Icon name="plus"/></button></div><label className="inbox-search"><Icon name="search" size={17}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search"/></label><div className="inbox-list">{data.conversations.filter((c) => (accountById.get(c.accountId)?.username || '').includes(query.toLowerCase())).map((item) => { const person = accountById.get(item.accountId) || data.me; const last = item.messages[item.messages.length - 1]; return <button className={`inbox-item ${item.id === activeConversation ? 'selected' : ''}`} key={item.id} onClick={() => { setActiveConversation(item.id); setNewRecipientId(null); setMobileChatOpen(true) }}><img src={person.avatar} alt=""/><span><b>{person.name}</b><small>{last?.text || 'Start a conversation'} <i>· {last?.time}</i></small></span>{item.unread ? <span className="unread-dot"/> : null}</button> })}</div></div>
@@ -321,7 +331,7 @@ function App() {
       {page === 'profile' && <section className="profile-page"><div className="profile-header"><img className="profile-avatar" src={currentProfile.avatar} alt=""/><div className="profile-info"><div className="profile-name-row"><h1>{currentProfile.username}</h1>{profileId === data.me.id ? <button className="quiet-button" onClick={() => setShowEdit(true)}>Edit profile</button> : <><button className="primary-button" onClick={() => follow(currentProfile.id)}>Follow</button><button className="quiet-button" onClick={() => openConversationWith(currentProfile.id)}>Message</button><button className="quiet-button" onClick={() => { void act('block.toggle', { targetId: currentProfile.id }); setToast('Block setting updated') }}>Block</button><button className="quiet-button" onClick={() => { void act('report.create', { targetType: 'account', targetId: currentProfile.id, reason: 'User report' }); setToast('Report submitted') }}>Report</button></>}</div><div className="profile-stats"><span><b>{visiblePosts.length}</b> posts</span><span><b>{profileId === data.me.id ? 248 : 1250}</b> followers</span><span><b>{profileId === data.me.id ? 301 : 412}</b> following</span></div><p><b>{currentProfile.name}</b>{currentProfile.pronouns && <span className="pronouns"> · {currentProfile.pronouns}</span>}<br/>{currentProfile.bio || 'Finding little moments worth keeping.'}</p></div></div><div className="profile-tabs"><button className="active"><Icon name="grid" size={14}/> POSTS</button>{profileId === data.me.id && <button onClick={() => openComposer()}><Icon name="plus" size={14}/> NEW POST</button>}</div><div className="profile-grid">{visiblePosts.map((post) => <button key={post.id} onClick={() => setToast(post.caption)}><img src={post.image} alt={post.caption}/><span><Icon name="heart" size={16} filled/> {post.likes} &nbsp; <Icon name="comment" size={16}/> {post.comments}</span></button>)}</div></section>}
     </main>
 
-    <nav className="mobile-nav" aria-label="Mobile navigation"><NavButton icon="home" label="Home" active={page === 'home'} onClick={() => navigate('home')} compact/><NavButton icon="search" label="Explore" active={page === 'explore'} onClick={() => navigate('explore')} compact/><NavButton icon="plus" label="Create" onClick={() => openComposer()} compact/><NavButton icon="message" label="DMs" active={page === 'messages'} onClick={() => navigate('messages')} compact/><button className="mobile-avatar" onClick={() => navigate('profile')}><img src={data.me.avatar} alt="My profile"/></button></nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation"><NavButton icon="home" label="Home" active={page === 'home'} onClick={() => navigate('home')} compact/><NavButton icon="search" label="Explore" active={page === 'explore'} onClick={() => navigate('explore')} compact/><NavButton icon="plus" label="Create" onClick={() => openComposer()} compact/><NavButton icon="message" label="DMs" active={page === 'messages'} onClick={() => navigate('messages')} compact/><button className="mobile-avatar" onClick={() => navigate('profile')} aria-label="My profile" aria-current={page === 'profile' && profileId === data.me.id ? 'page' : undefined}><img src={data.me.avatar} alt=""/></button></nav>
 
     {showCompose && <ComposeModal kind={composeKind} onClose={() => setShowCompose(false)} onCreate={createPost} />}
     {viewStory && <StoryModal story={viewStory} account={accountById.get(viewStory.accountId) || data.me} onClose={() => setViewStory(null)} />}
@@ -332,7 +342,7 @@ function App() {
 }
 
 function NavButton({ icon, label, active, onClick, badge, compact = false }: { icon: string; label: string; active?: boolean; onClick: () => void; badge?: string; compact?: boolean }) {
-  return <button className={`${compact ? 'mobile-nav-button' : 'nav-button'} ${active ? 'active' : ''}`} onClick={onClick} aria-label={label}><span className="nav-icon"><Icon name={icon} filled={active}/>{badge && <i/>}</span>{!compact && <span>{label}</span>}</button>
+  return <button className={`${compact ? 'mobile-nav-button' : 'nav-button'} ${active ? 'active' : ''}`} onClick={onClick} aria-label={label} aria-current={active ? 'page' : undefined}><span className="nav-icon"><Icon name={icon} filled={active}/>{badge && <i/>}</span>{!compact && <span>{label}</span>}</button>
 }
 
 function PostCard({ post, account, onLike, onProfile, onComment }: { post: Post; account: Account; onLike: () => void; onProfile: () => void; onComment: (content?: string) => void }) {
