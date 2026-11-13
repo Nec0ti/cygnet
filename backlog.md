@@ -2,11 +2,11 @@
 
 ## Durum özeti
 
-- Aşama: MVP tamamlandı ve main'e push edildi (`69b06bc`, 2026-11-13)
-- Son tamamlanan iş: uçtan uca izole simülasyon, yerel kurulum dokümantasyonu ve GitHub senkronizasyonu
-- Şu an yapılan iş: yok
-- Sıradaki adım: README'deki iki terminal komutuyla uygulamayı başlatıp bir haftalık deneyi yürütmek
-- MVP dışında henüz kontrol edilmeyenler: tarayıcı görsel E2E'si ve uzun süreli simülasyon dayanıklılığı
+- Aşama: 1.0 geliştirme
+- Son tamamlanan iş: kalıcı simülasyon ayarları, filtreli olay arşivi, persona etkileşim hafızası, üstel retry ve gerçekçi başlangıç fotoğrafları
+- Şu an yapılan iş: 1.0 değişikliklerini commit/push için hazırlama
+- Sıradaki adım: kod ve görselleri özel main'e push etmek; ardından yeni DB'de migration/ayar/arşiv/blok aşma akışını kontrol etmek
+- Yarım kalan işler: yeni DB entegrasyon kontrolü ve bir haftalık dayanıklılık ölçümü
 
 ## İşler
 
@@ -27,6 +27,14 @@
 - [x] Yerel medya deposu ve üretilen görseli post/story'ye bağlama.
 - [x] Yerel çalıştırma, yedekleme/dışa aktarma ve deney raporu talimatları (`README.md`, `/api/export`).
 - [x] İzole DB'de tek persona postu ile orkestratör → persona → imagegen → API akışını doğrula; PNG medyası HTTP 200 ile döndü.
+
+### Cygnet 1.0
+
+- [x] Persona hafızası, arkadaşlık hook'u ve DM bağlamı.
+- [x] Kalıcı nüfus/simülasyon ayarları, filtreli olay arşivi, exponential backoff ve 10 ajan sınırı.
+- [x] Varsayılan kapalı, tek seferlik alternatif hesap blok aşma senaryosu.
+- [x] Seed feed için imagegen fotoğrafları.
+- [ ] Uçtan uca yeni DB kontrolü ve belge/depo senkronizasyonu.
 
 ## Kayıt kuralı
 

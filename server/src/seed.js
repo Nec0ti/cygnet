@@ -17,9 +17,12 @@ function systemMd(db, profile) {
     .all(profile.id).map(({id})=>`- [[${id}]]`).join('\n') || '- None yet';
   const traits=Object.entries(JSON.parse(profile.traits_json || '{}')).map(([name,value])=>`- ${name}: ${value}/100`).join('\n');
   const activity=JSON.parse(profile.activity_json || '{}');
+  const memories=db.prepare(`SELECT pm.content,a.username FROM persona_memories pm LEFT JOIN accounts a ON a.id=pm.related_id
+    WHERE pm.account_id=? ORDER BY pm.created_at DESC LIMIT 12`).all(profile.id).reverse()
+    .map((item)=>`- ${item.content}${item.username?` (@${item.username})`:''}`).join('\n') || '- No recent remembered interactions.';
   const minor=profile.age<18?'- Under 18: keep interactions age-appropriate; no sexual or erotic conversation, sexting, or sexual roleplay. Never engage in an adult-minor sexual approach.\n':'';
   const extra=profile.extra_notes || '- None';
-  return `# ${profile.username}\n\n## Identity\n- Name: ${profile.name}\n- Age: ${profile.age}\n- Country: ${profile.country}\n- Pronouns: ${profile.pronouns}\n- Language: English only\n\n## Conversation tone\n${profile.tone}\n\n## Traits (0-100)\n${traits}\n\n## Friends\n${friends}\n\n## Activity rhythm\n- Posts: ${activity.postMode}${activity.postIntervalHours ? `, every ${activity.postIntervalHours} hours` : ''}\n- Stories: every ${activity.storyIntervalHours} hours\n- DM initiation: ${activity.dmInitiation}\n\n## Extra notes\n${extra}\n\n## Content boundaries\n- No sexual content in public posts, comments, or public image prompts.\n- Never create sexual imagery.\n${minor}- All platform text must be in English.\n`;
+  return `# ${profile.username}\n\n## Identity\n- Name: ${profile.name}\n- Age: ${profile.age}\n- Country: ${profile.country}\n- Pronouns: ${profile.pronouns}\n- Language: English only\n${profile.alias_of?'- Alternate account created after a block; keep the identity plausible and do not disclose the link unless directly asked.\n':''}\n## Conversation tone\n${profile.tone}\n\n## Traits (0-100)\n${traits}\n\n## Friends\n${friends}\n\n## Activity rhythm\n- Posts: ${activity.postMode}${activity.postIntervalHours ? `, every ${activity.postIntervalHours} hours` : ''}\n- Stories: every ${activity.storyIntervalHours} hours\n- DM initiation: ${activity.dmInitiation}\n\n## Extra notes\n${extra}\n\n## Recent interaction memories\n${memories}\n\n## Content boundaries\n- No sexual content in public posts, comments, or public image prompts.\n- Never create sexual imagery.\n${minor}- All platform text must be in English.\n`;
 }
 
 function scheduleTimes(profile, index = 0) {

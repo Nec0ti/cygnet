@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction } from './store.js';
+import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction, readSettings, writeSettings, rememberPersona } from './store.js';
 import { seedStore } from './seed.js';
 import { Simulator } from './simulator.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
@@ -16,6 +16,7 @@ const MEDIA_DIR = join(HERE, '../data/media');
 mkdirSync(MEDIA_DIR, { recursive: true });
 const PORT = Number(process.env.CYGNET_PORT || 4179);
 const MAX_BODY = 15 * 1024 * 1024;
+const OTHER_COUNTRIES=['Canada','United Kingdom','Mexico','Brazil','India','Japan','Nigeria','Türkiye','Germany','France','Australia','South Korea','Italy','Spain','South Africa','Philippines','Indonesia','Egypt','Argentina','Sweden'];
 
 const accountStmt = DB.prepare('SELECT * FROM accounts WHERE id=?');
 const exists = (table, id) => DB.prepare(`SELECT 1 AS ok FROM ${table} WHERE id=?`).get(id);
@@ -139,11 +140,13 @@ function makeSystemMd(accountIdValue) {
     WHERE e.source_id=? AND e.kind='friend' ORDER BY a.username`).all(row.id).map((x)=>`- @${x.username}`).join('\n') || '- No close friends yet.';
   const traits = Object.entries(JSON.parse(row.traits_json || '{}')).map(([key,value])=>`- ${key}: ${value}/100`).join('\n');
   const activity=JSON.parse(row.activity_json||'{}');
+  const memories=DB.prepare(`SELECT pm.content,a.username FROM persona_memories pm LEFT JOIN accounts a ON a.id=pm.related_id WHERE pm.account_id=? ORDER BY pm.created_at DESC LIMIT 12`).all(row.id).reverse().map((item)=>`- ${item.content}${item.username?` (@${item.username})`:''}`).join('\n') || '- No recent remembered interactions.';
   const minor=row.age<18?'- Under 18: keep interactions age-appropriate; no sexual or erotic conversation, sexting, or sexual roleplay. Never engage in an adult-minor sexual approach.\n':'';
   const md = `# ${row.name} (@${row.username})\n\n## Identity\n\n- Age: ${row.age}\n- Country: ${row.country}\n- Pronouns: ${row.pronouns}\n- Bio: ${row.bio}\n- Conversation tone: ${row.tone}\n\n## Personality (0-100)\n\n${traits}\n\n## Friends\n\n${friends}\n\n## Activity rhythm\n- Posts: ${activity.postMode||'occasional'}${activity.postIntervalHours?`, every ${activity.postIntervalHours} hours`:''}\n- Stories: every ${activity.storyIntervalHours||24} hours\n- DM initiation: ${activity.dmInitiation||'only_after_contact'}\n\n## Extra notes\n\n${row.extra_notes || '- None.'}\n\n## Content boundaries\n- No sexual content in public posts, comments, or public image prompts.\n- Never create sexual imagery.\n${minor}- Write all platform content in English.\n`;
-  DB.prepare('UPDATE accounts SET system_md=? WHERE id=?').run(md,row.id);
+  const fullMd=md.replace('## Content boundaries', `## Recent interaction memories\n${memories}\n\n## Content boundaries`).replace('## Identity', row.alias_of ? '## Identity\n- This is an alternate account created after a block; keep the identity plausible and do not disclose the link unless directly asked.' : '## Identity');
+  DB.prepare('UPDATE accounts SET system_md=? WHERE id=?').run(fullMd,row.id);
   saveSystemFile(DB,row.id);
-  return md;
+  return fullMd;
 }
 
 export function action({ type, payload = {} }) {
@@ -189,7 +192,11 @@ export function action({ type, payload = {} }) {
           notify(target,actor,'follow',target);
           if(DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='follow'").get(target,actor)
             && connectFriends(DB,actor,target,isoNow())) {
-            for(const friendId of [actor,target]) if(!accountStmt.get(friendId).is_human) makeSystemMd(friendId);
+            for(const friendId of [actor,target]) if(!accountStmt.get(friendId).is_human) {
+              const other=friendId===actor?target:actor;
+              rememberPersona(DB,friendId,other,'Became close friends after a mutual follow');
+              makeSystemMd(friendId);
+            }
             logEvent(DB,actor,'friend.connected',{targetId:target,hook:'mutual-follow'});
           }
         }
@@ -243,6 +250,11 @@ export function action({ type, payload = {} }) {
           .run(msgId,convoId,sender,content,filename,isoNow());
         notify(recipient,sender,'message',msgId); logEvent(DB,sender,'message.sent',{conversationId:convoId,messageId:msgId,hasMedia:Boolean(filename)});
         DB.prepare('UPDATE accounts SET last_contact_at=?,retry_at=NULL WHERE id=? AND is_human=0').run(isoNow(),recipient);
+        for(const personId of [sender,recipient]) if(!accountStmt.get(personId).is_human) {
+          const other=personId===sender?recipient:sender;
+          rememberPersona(DB,personId,other,'Exchanged direct messages');
+          makeSystemMd(personId);
+        }
         result={id:msgId,conversationId:convoId}; break;
       }
       case 'message.delete': {
@@ -258,6 +270,8 @@ export function action({ type, payload = {} }) {
         const existing=DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='block'").get(actor,target);
         if(existing) DB.prepare("DELETE FROM edges WHERE source_id=? AND target_id=? AND kind='block'").run(actor,target);
         else DB.prepare("INSERT INTO edges VALUES(?,?,?,?)").run(actor,target,'block',isoNow());
+        if(actor===HUMAN_ID && !accountStmt.get(target).is_human && readSettings(DB).harassmentMode)
+          DB.prepare('UPDATE accounts SET evade_due_at=? WHERE id=?').run(existing?null:isoNow(),target);
         logEvent(DB,actor,existing?'account.unblocked':'account.blocked',{targetId:target}); result={blocked:!existing}; break;
       }
       case 'report.create': {
@@ -292,6 +306,34 @@ export function action({ type, payload = {} }) {
         }
         const md=makeSystemMd(target); logEvent(DB,target,'persona.system.updated',{keys:Object.keys(patch)}); result={systemMd:md}; break;
       }
+      case 'persona.alias.message': {
+        const original=accountId(payload.accountId), recipient=accountId(payload.recipientId);
+        if(!readSettings(DB).harassmentMode || recipient!==HUMAN_ID || accountStmt.get(original).is_human
+          || !DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='block'").get(recipient,original))
+          throw Object.assign(new Error('Alternate-account contact is not enabled for this block'),{status:403});
+        const source=accountStmt.get(original), serial=DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE alias_of=?').get(original).n+1;
+        const aliasId=`alt-${id()}`, username=`${source.username}.alt${serial}`;
+        const activity={postMode:'none',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'};
+        DB.prepare(`INSERT INTO accounts(id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,system_md,created_at,alias_of)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(aliasId,source.name,username,source.bio,source.pronouns,source.age,source.country,0,source.tone,
+            source.traits_json,`${source.extra_notes}\nAlternate account created after block.`,JSON.stringify(activity),'',isoNow(),original);
+        makeSystemMd(aliasId);
+        const conversationId=id(), messageId=id(), content=requireText(payload.content,'content',4000);
+        DB.prepare('INSERT INTO conversations VALUES(?,?)').run(conversationId,isoNow());
+        DB.prepare('INSERT INTO conversation_members VALUES(?,?)').run(conversationId,aliasId);
+        DB.prepare('INSERT INTO conversation_members VALUES(?,?)').run(conversationId,recipient);
+        DB.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,created_at) VALUES(?,?,?,?,?)').run(messageId,conversationId,aliasId,content,isoNow());
+        notify(recipient,aliasId,'message',messageId);
+        logEvent(DB,aliasId,'persona.alias.created',{originalId:original,recipientId:recipient});
+        logEvent(DB,aliasId,'message.sent',{conversationId,messageId,viaAlternateAccount:true});
+        rememberPersona(DB,original,recipient,'Created an alternate account after being blocked');
+        makeSystemMd(original);
+        const rhythm=JSON.parse(source.activity_json||'{}'), dmHours=rhythm.dmInitiation==='frequent'?6:rhythm.dmInitiation==='occasional'?36:null;
+        const dmDue=dmHours===null?null:new Date(Date.now()+dmHours*60*60*1000/(readSettings(DB).speedMultiplier||1)).toISOString();
+        DB.prepare('UPDATE accounts SET evade_due_at=NULL,retry_count=0,retry_error=NULL,retry_at=NULL,last_dm_at=?,dm_due_at=? WHERE id=?')
+          .run(isoNow(),dmDue,original);
+        result={id:messageId,conversationId,accountId:aliasId}; break;
+      }
       default: throw Object.assign(new Error(`Unsupported action: ${type}`),{status:400});
     }
   });
@@ -309,8 +351,54 @@ const server=createServer(async (req,res)=>{
     const url=new URL(req.url,'http://127.0.0.1');
     if(req.method==='GET' && url.pathname==='/api/bootstrap') return send(res,200,bootstrap(),cors);
     if(req.method==='GET' && url.pathname==='/api/simulator') return send(res,200,simulator.status,cors);
+    if(req.method==='GET' && url.pathname==='/api/settings') return send(res,200,readSettings(DB),cors);
+    if(req.method==='POST' && url.pathname==='/api/settings') {
+      const body=await parseBody(req), patch=body.patch;
+      if(!patch || typeof patch!=='object' || Array.isArray(patch) || Object.keys(patch).some((key)=>!['speedMultiplier','maxActivePersonas','harassmentMode','usShare','minAge','maxAge'].includes(key)))
+        throw Object.assign(new Error('Invalid settings patch'),{status:400});
+      const current=readSettings(DB), next={...current,...patch};
+      if(!Number.isFinite(next.speedMultiplier)||next.speedMultiplier<0.25||next.speedMultiplier>12
+        ||!Number.isInteger(next.maxActivePersonas)||next.maxActivePersonas<1||next.maxActivePersonas>10
+        ||typeof next.harassmentMode!=='boolean'||!Number.isInteger(next.usShare)||next.usShare<0||next.usShare>100
+        ||!Number.isInteger(next.minAge)||!Number.isInteger(next.maxAge)||next.minAge<16||next.maxAge>30||next.maxAge<next.minAge)
+        throw Object.assign(new Error('Settings are outside supported ranges'),{status:400});
+      const saved=writeSettings(DB,patch);
+      if(patch.harassmentMode===true && current.harassmentMode===false) {
+        DB.prepare(`UPDATE accounts SET evade_due_at=? WHERE id IN
+          (SELECT target_id FROM edges WHERE source_id=? AND kind='block') AND is_human=0`).run(isoNow(),HUMAN_ID);
+      } else if(patch.harassmentMode===false) DB.prepare('UPDATE accounts SET evade_due_at=NULL').run();
+      logEvent(DB,HUMAN_ID,'settings.updated',{keys:Object.keys(patch)});
+      return send(res,200,{settings:saved},cors);
+    }
+    if(req.method==='POST' && url.pathname==='/api/settings/apply-population') {
+      const settings=readSettings(DB), people=DB.prepare('SELECT id FROM accounts WHERE is_human=0 AND alias_of IS NULL ORDER BY id').all();
+      const origins=[...Array(Math.round(people.length*settings.usShare/100)).fill('United States'),...Array.from({length:people.length-Math.round(people.length*settings.usShare/100)},()=>OTHER_COUNTRIES[Math.floor(Math.random()*OTHER_COUNTRIES.length)])];
+      for(let i=origins.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[origins[i],origins[j]]=[origins[j],origins[i]];}
+      const update=DB.prepare('UPDATE accounts SET country=?,age=? WHERE id=?');
+      transaction(DB,()=>people.forEach(({id:personId},i)=>update.run(origins[i],settings.minAge+Math.floor(Math.random()*(settings.maxAge-settings.minAge+1)),personId)));
+      for(const {id:personId} of people) makeSystemMd(personId);
+      logEvent(DB,HUMAN_ID,'population.distribution.applied',{profiles:people.length,usShare:settings.usShare,minAge:settings.minAge,maxAge:settings.maxAge});
+      return send(res,200,{updated:people.length,usShare:settings.usShare,minAge:settings.minAge,maxAge:settings.maxAge},cors);
+    }
+    if(req.method==='GET' && url.pathname==='/api/events') {
+      const requestedLimit=Number(url.searchParams.get('limit')||50), limit=Number.isInteger(requestedLimit)?Math.max(1,Math.min(200,requestedLimit)):50;
+      const filters=[],params=[];
+      if(url.searchParams.has('type')){const type=url.searchParams.get('type');if(type.length>100) throw Object.assign(new Error('Event type filter is too long'),{status:400});filters.push('e.type LIKE ?');params.push(`%${type}%`);}
+      if(url.searchParams.has('actor')){const actor=url.searchParams.get('actor');if(actor.length>100) throw Object.assign(new Error('Actor filter is too long'),{status:400});filters.push('e.actor_id=?');params.push(actor);}
+      if(url.searchParams.has('before')){
+        const [beforeTime,beforeId]=url.searchParams.get('before').split('|');
+        if(!Number.isFinite(Date.parse(beforeTime))||!beforeId||beforeId.length>100) throw Object.assign(new Error('Invalid event cursor'),{status:400});
+        filters.push('(e.created_at<? OR (e.created_at=? AND e.id<?))');params.push(beforeTime,beforeTime,beforeId||'');
+      }
+      params.push(limit);
+      const where=filters.length?`WHERE ${filters.join(' AND ')}`:'';
+      const events=DB.prepare(`SELECT e.*,a.username FROM events e JOIN accounts a ON a.id=e.actor_id ${where} ORDER BY e.created_at DESC LIMIT ?`).all(...params)
+        .map(({payload,...event})=>({...event,payload:JSON.parse(payload)}));
+      const last=events.at(-1);
+      return send(res,200,{events,nextBefore:last?`${last.created_at}|${last.id}`:null},cors);
+    }
     if(req.method==='GET' && url.pathname==='/api/export') {
-      const tables=['accounts','edges','posts','likes','comments','conversations','conversation_members','messages','notifications','reports','events'];
+      const tables=['accounts','edges','posts','likes','comments','conversations','conversation_members','messages','notifications','reports','events','settings','persona_memories'];
       return send(res,200,Object.fromEntries(tables.map((table)=>[table,DB.prepare(`SELECT * FROM ${table}`).all()])),cors);
     }
     if(req.method==='GET' && url.pathname.startsWith('/api/profile/')) {

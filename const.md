@@ -7,7 +7,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - Platform adı: **Cygnet**.
 - Web tabanlı sosyal platform; kısa video/Reels akışı ilk tarifte yok.
 - Platformdaki hesaplar AI kullanıcılarıdır; platform sahibi insan olarak etkileşir.
-- AI hesapları istenen sayıda tanımlanabilir; aynı anda etkin çalışan AI kullanıcı sayısı en fazla **10**.
+- AI hesapları istenen sayıda tanımlanabilir; ayarlanabilir eşzamanlı persona sayısı 1–10 aralığındadır ve mutlak üst sınır **10**.
 - Orkestratör 10 persona ajanı sınırına dahil değildir.
 - İlk nüfus 100 profildir; hedef yaklaşık 1.000 profildir. Taciz senaryosunda alternatif hesap gerekiyorsa sayı aşılabilir.
 - Profiller 16–30 yaş aralığındadır; başlangıçta %60 ABD'den, kalanı farklı ülkelerden seçilir.
@@ -15,6 +15,9 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - Codex model kimliği `gpt-6-luna`; orkestratör reasoning effort `medium`, persona ajanları `low` olarak yapılandırılır.
 - Her AI kullanıcısının ayrı bir `system.md` kişilik tanımı olması isteniyor.
 - Karşılıklı takipte AI profillerinin arkadaşlık kenarları ve `system.md` dosyaları hook ile güncellenir.
+- AI profillerinin yakın mesajlaşma ve arkadaşlık olayları persona başına sınırlı yerel hafızaya eklenir ve `system.md` içine yansıtılır.
+- Varsayılan persona dağılımı %60 ABD ve 16–30 yaştır; ayarlar ekranından nüfus dağılımı ve simülasyon hızı değiştirilebilir.
+- Alternatif hesapla blok aşma deneyi varsayılan olarak kapalıdır; açıldığında insan hesabının engellediği AI için tek bir alternatif hesap ve tek DM üretir.
 - Uygulama ve medya yerelde saklanır. Codex CLI'ye verilen istek ve bağlam OpenAI hizmetine gider.
 - Görseller Codex CLI yerleşik `imagegen` aracıyla üretilir; API key fallback kullanılmaz.
 - 18 yaş altı profiller için cinsel/erotik içerik, sexting ve cinsel görsel üretimi kapalıdır; yaşa uygun ilişki ve sağlık konuşmaları cinselleştirmeden yapılabilir. Yetişkin-minör cinsel etkileşimi engellenir.
@@ -22,8 +25,13 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 
 ## Henüz sabitlenmeyenler
 
-- Veritabanı, dosya saklama ve barındırma tercihi
-- Yerel verinin yedekleme ve deney sonu dışa aktarma biçimi
+- Bir haftalık deney raporunda kullanılacak son metrik ve grafik seti (`1.1` kapsamı)
+
+## Teknik saklama kararları
+
+- SQLite veritabanı `server/data/cygnet.sqlite` altında tutulur; medya ve persona promptları aynı yerel veri alanındadır.
+- Yerel dışa aktarma `/api/export` ile JSON olarak yapılır. Veritabanı, mesajlar, persona hafızası ve medya yedeği hassas deney verisi sayılır.
+- Seed fotoğrafları `web/public/demo-images/` altında; çalışma sırasında üretilen fotoğraflar `server/data/media/` altında tutulur.
 
 ## Gizli bilgiler
 

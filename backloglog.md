@@ -2,6 +2,17 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — 1.0 geliştirme başladı
+
+- Kullanıcı MVP'yi inceledi ve seed feed'deki SVG çizimlerini düşük gerçekçilikte buldu; 1.0'da Codex imagegen ile dört fotoğraf üretildi ve frontend fallback'leri değiştirildi.
+- SQLite'a kalıcı ayarlar ve persona başına sınırlı hafıza eklendi; karşılıklı takip ve DM olayları `system.md` içine yansıyor.
+- Simülatörün 1–10 persona sınırı ayardan okunuyor, etkinlik hızı sonraki aralıkları ölçekliyor, hatalarda exponential backoff uygulanıyor.
+- Filtrelenebilir/sayfalı olay arşivi ile nüfus dağılımını uygulama ayarları eklendi.
+- Varsayılanı kapalı blok aşma akışı: insan bir AI hesabını bloklayıp modu açtıktan sonra tek alternatif hesap ve tek cinsel olmayan DM oluşturulabiliyor.
+- UI production build'i, sunucu JS parse kontrolleri ve diff whitespace kontrolü geçti. API/DB migration, simülatör ve senaryo uçtan uca kontrolü henüz çalıştırılmadı.
+- Node sözdizimi kontrolleri, `npm run build` ve `git diff --check` geçti. 1.0 kodu ile dokümanlar commit/push için hazır.
+- Sıradaki: özel main'e push et; yeni DB entegrasyon kontrolü ve uzun süreli dayanıklılık gözlemini açık bırak.
+
 ## 2026-11-13 — MVP uygulaması ve doğrulama
 
 - React arayüzü, Node/SQLite API, 100 başlangıç personası, Codex CLI orkestratörü/persona ajanları ve yerel imagegen bağlantısı main'e alındı.

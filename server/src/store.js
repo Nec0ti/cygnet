@@ -20,7 +20,8 @@ export function openStore(path = DB_PATH) {
       extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
       post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
       last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT,
-      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL
+      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL,
+      alias_of TEXT REFERENCES accounts(id), evade_due_at TEXT, retry_count INTEGER NOT NULL DEFAULT 0, retry_error TEXT
     );
     CREATE TABLE IF NOT EXISTS edges (
       source_id TEXT NOT NULL REFERENCES accounts(id), target_id TEXT NOT NULL REFERENCES accounts(id),
@@ -65,6 +66,11 @@ export function openStore(path = DB_PATH) {
       id TEXT PRIMARY KEY, actor_id TEXT NOT NULL REFERENCES accounts(id),
       type TEXT NOT NULL, payload TEXT NOT NULL, created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS persona_memories (
+      id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id), related_id TEXT REFERENCES accounts(id),
+      content TEXT NOT NULL, created_at TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS posts_created_idx ON posts(created_at DESC);
     CREATE INDEX IF NOT EXISTS events_created_idx ON events(created_at DESC);
   `);
@@ -72,9 +78,32 @@ export function openStore(path = DB_PATH) {
   for (const [name, definition] of Object.entries({
     activity_json: "TEXT NOT NULL DEFAULT '{}'", post_due_at: 'TEXT', story_due_at: 'TEXT',
     dm_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
-    last_dm_at: 'TEXT', last_contact_at: 'TEXT', retry_at: 'TEXT',
+    last_dm_at: 'TEXT', last_contact_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
+    evade_due_at: 'TEXT', retry_count: 'INTEGER NOT NULL DEFAULT 0', retry_error: 'TEXT',
   })) if (!columns.has(name)) db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${definition}`);
+  const insertSetting = db.prepare('INSERT OR IGNORE INTO settings(key,value,updated_at) VALUES(?,?,?)');
+  const now = new Date().toISOString();
+  for (const [key,value] of Object.entries({speedMultiplier:1,maxActivePersonas:10,harassmentMode:false,usShare:60,minAge:16,maxAge:30}))
+    insertSetting.run(key,JSON.stringify(value),now);
   return db;
+}
+
+export function readSettings(db) {
+  return Object.fromEntries(db.prepare('SELECT key,value FROM settings').all().map(({key,value})=>[key,JSON.parse(value)]));
+}
+
+export function writeSettings(db, patch) {
+  const current=readSettings(db), next={...current,...patch}, now=new Date().toISOString();
+  const save=db.prepare('INSERT INTO settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at');
+  for(const [key,value] of Object.entries(patch)) save.run(key,JSON.stringify(value),now);
+  return next;
+}
+
+export function rememberPersona(db, accountId, relatedId, content) {
+  db.prepare('INSERT INTO persona_memories(id,account_id,related_id,content,created_at) VALUES(?,?,?,?,?)')
+    .run(randomUUID(),accountId,relatedId,content,new Date().toISOString());
+  db.prepare(`DELETE FROM persona_memories WHERE account_id=? AND id NOT IN
+    (SELECT id FROM persona_memories WHERE account_id=? ORDER BY created_at DESC LIMIT 20)`).run(accountId,accountId);
 }
 
 export function logEvent(db, actorId, type, payload = {}) {

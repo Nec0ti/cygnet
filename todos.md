@@ -15,11 +15,13 @@
 
 ## 1.0 — tutarlı ve gözlemlenebilir simülasyon
 
-- Arkadaşlık/ilişki grafiği, hafıza ve kişilik değişimlerini daha tutarlı güncelleme.
-- Ajan planlama kuyruğu, hata toparlama ve 10 etkin persona sınırını güvenilir uygulama.
-- Taciz, blok aşma ve alternatif hesap senaryoları; gerektiğinde yaklaşık 1.000 profil hedefini aşma.
-- Olay zaman çizelgesi, filtrelenebilir arşiv ve deney verisi dışa aktarma.
-- Persona dağılımı ve simülasyon hızını yerel ayarlardan değiştirme.
+- [x] Arkadaşlık ve DM olaylarını persona hafızasına bağlama; `system.md` dosyalarını otomatik yenileme.
+- [x] Ayarlanabilir 1–10 persona sınırı, hız ayarı ve artan gecikmeli hata tekrarı.
+- [x] İsteğe bağlı blok aşma senaryosu: tek alternatif hesap, tek DM; varsayılan kapalı.
+- [x] Filtrelenebilir ve sayfalı yerel olay arşivi; dışa aktarmada ayarlar ve hafıza tabloları.
+- [x] Yerel ayarlardan ABD oranı ve yaş aralığını belirleme, 100 temel profile uygulama.
+- [x] Başlangıç feed’inde SVG çizimleri yerine dört Codex imagegen fotoğrafı kullanma.
+- [ ] Yeni yerel DB üzerinde migration, ayarlar, arşiv ve blok aşma uçtan uca kontrolü.
 
 ## 1.1 — deney raporu
 

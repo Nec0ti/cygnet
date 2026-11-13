@@ -7,15 +7,17 @@ type Notification = { id: string; kind: string; accountId: string; text: string;
 type Message = { id: string; from: 'me' | 'them'; text: string; time: string; image?: string; deleted?: boolean }
 type Conversation = { id: string; accountId: string; messages: Message[]; unread?: number }
 type Bootstrap = { me: Account; accounts: Account[]; posts: Post[]; stories: Story[]; notifications: Notification[]; conversations: Conversation[] }
-type Page = 'home' | 'explore' | 'messages' | 'notifications' | 'profile'
+type Page = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'activity' | 'settings'
+type SimSettings = { speedMultiplier: number; maxActivePersonas: number; harassmentMode: boolean; usShare: number; minAge: number; maxAge: number }
+type SimEvent = { id: string; actor_id: string; username: string; type: string; payload: Record<string, unknown>; created_at: string }
 
 const svgData = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`
 const avatar = (initials: string, color: string) => svgData(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="${color}"/><circle cx="60" cy="45" r="23" fill="#f1d8bd"/><path d="M20 120c3-29 18-43 40-43s37 14 40 43" fill="#263c35"/><path d="M38 42c3-24 44-32 48 2-8-8-12-12-24-12-9 0-16 5-24 10" fill="#46392e"/></svg>`)
 const photos = {
-  cafe: svgData('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="#f4d8ad"/><stop offset=".55" stop-color="#e4b891"/><stop offset=".56" stop-color="#7b7261"/><stop offset="1" stop-color="#443e37"/></linearGradient></defs><rect width="1000" height="1000" fill="url(#g)"/><circle cx="735" cy="260" r="120" fill="#fff0cd" opacity=".8"/><path d="M0 650h1000v350H0z" fill="#514841"/><rect x="115" y="115" width="290" height="500" rx="8" fill="#9aa49a" opacity=".65"/><path d="M535 580h240v45H535z" fill="#d6b38b"/><path d="M580 470h130v110H580z" fill="#efe7d8"/><path d="M710 490h36v52h-36" fill="none" stroke="#efe7d8" stroke-width="16"/><ellipse cx="645" cy="585" rx="190" ry="22" fill="#c49b75"/><path d="M230 250v365m0-240h175M115 390h290" stroke="#f2e1c8" stroke-width="17" opacity=".8"/></svg>'),
-  coast: svgData('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><linearGradient id="s" x2="0" y2="1"><stop stop-color="#c3d7d1"/><stop offset=".6" stop-color="#f0c5a0"/><stop offset="1" stop-color="#69949a"/></linearGradient></defs><rect width="1000" height="1000" fill="url(#s)"/><circle cx="730" cy="260" r="100" fill="#fff1d7"/><path d="M0 520q200-50 360 10t320 0 320-10v480H0z" fill="#46838b"/><path d="M0 670q180-35 340 15t330 0 330-10v325H0z" fill="#326a75"/><path d="M0 795q230-80 480 0t520-10v215H0z" fill="#d7bc9a"/><path d="M0 820q210-49 430 0t570-15" fill="none" stroke="#f4e1c5" stroke-width="16" opacity=".8"/><path d="M0 565q200-45 390 5t610-12" fill="none" stroke="#c8e0d9" stroke-width="12" opacity=".6"/></svg>'),
-  flowers: svgData('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><rect width="1000" height="1000" fill="#d9dfc8"/><path d="M0 0h1000v340H0z" fill="#f1d9c7"/><path d="M80 640q220-170 430 0t410-30v390H80z" fill="#84906e"/><g fill="#e7a28b"><circle cx="220" cy="350" r="70"/><circle cx="720" cy="450" r="85"/><circle cx="490" cy="560" r="68"/><circle cx="830" cy="690" r="58"/></g><g fill="#f5d8bf"><circle cx="220" cy="350" r="28"/><circle cx="720" cy="450" r="32"/><circle cx="490" cy="560" r="25"/><circle cx="830" cy="690" r="22"/></g><g stroke="#53674c" stroke-width="17"><path d="M220 420v280M720 535v245M490 630v140M830 748v90"/></g><path d="M220 550q-95-80-120-20 60 90 120 20m500-40q105-95 135-20-70 90-135 20m-365 135q-75-76-110-25 45 80 110 25" fill="#91a17c"/></svg>'),
-  city: svgData('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><linearGradient id="n" x2="0" y2="1"><stop stop-color="#38485b"/><stop offset="1" stop-color="#d38f72"/></linearGradient></defs><rect width="1000" height="1000" fill="url(#n)"/><circle cx="500" cy="470" r="125" fill="#f1bd91" opacity=".7"/><path d="M0 620h130V410h160v210h110V300h160v320h100V390h190v230h150v380H0z" fill="#353b49"/><g fill="#efc794"><path d="M160 455h25v40h-25zm55 0h25v40h-25zm165-105h25v45h-25zm55 0h25v45h-25zm55 0h25v45h-25zm210 100h25v45h-25zm55 0h25v45h-25zm55 0h25v45h-25z"/></g><path d="M0 770q240-100 480 0t520-20v250H0z" fill="#292e39"/></svg>'),
+  cafe: '/demo-images/cafe.png',
+  coast: '/demo-images/coast.png',
+  flowers: '/demo-images/flowers.png',
+  city: '/demo-images/city.png',
 }
 
 const seed: Bootstrap = {
@@ -147,9 +149,24 @@ function App() {
   const [showEdit, setShowEdit] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [settings, setSettings] = useState<SimSettings>({ speedMultiplier: 1, maxActivePersonas: 10, harassmentMode: false, usShare: 60, minAge: 16, maxAge: 30 })
+  const [events, setEvents] = useState<SimEvent[]>([])
+  const [nextEventBefore, setNextEventBefore] = useState<string | null>(null)
+  const [eventTypeFilter, setEventTypeFilter] = useState('')
+  const [eventActorFilter, setEventActorFilter] = useState('')
+  const [savingSettings, setSavingSettings] = useState(false)
 
   useEffect(() => { void getJSON().then(({ data: nextData, mocked: isMocked }) => { setData(nextData); setProfileId(nextData.me.id); setActiveConversation(nextData.conversations[0]?.id || ''); setMocked(isMocked) }) }, [])
   useEffect(() => { if (!toast) return; const id = window.setTimeout(() => setToast(''), 2200); return () => window.clearTimeout(id) }, [toast])
+  useEffect(() => {
+    if (page === 'settings' && !mocked) void fetch('/api/settings').then((response) => response.json()).then(setSettings).catch(() => {})
+    if (page === 'activity' && !mocked) {
+      const params = new URLSearchParams({ limit: '100' })
+      if (eventTypeFilter.trim()) params.set('type', eventTypeFilter.trim())
+      if (eventActorFilter) params.set('actor', eventActorFilter)
+      void fetch(`/api/events?${params}`).then((response) => response.json()).then((value) => { setEvents(value.events || []); setNextEventBefore(value.nextBefore || null) }).catch(() => { setEvents([]); setNextEventBefore(null) })
+    }
+  }, [page, mocked, eventTypeFilter, eventActorFilter])
 
   const accountById = useMemo(() => new Map([[data.me.id, data.me], ...data.accounts.map((account) => [account.id, account] as const)]), [data])
   const currentProfile = accountById.get(profileId) || data.me
@@ -163,6 +180,39 @@ function App() {
       if (!response.ok) { setToast(result.error || 'The action could not be completed'); return null }
       return result.result
     } catch { return null }
+  }
+  async function saveSimulationSettings() {
+    setSavingSettings(true)
+    try {
+      const response = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ patch: settings }) })
+      const value = await response.json()
+      if (!response.ok) throw new Error(value.error || 'Settings could not be saved')
+      setSettings(value.settings)
+      setToast('Simulation settings saved')
+    } catch (error) { setToast(error instanceof Error ? error.message : 'Settings could not be saved') }
+    finally { setSavingSettings(false) }
+  }
+  async function loadOlderEvents() {
+    if (!nextEventBefore) return
+    const params = new URLSearchParams({ limit: '100', before: nextEventBefore })
+    if (eventTypeFilter.trim()) params.set('type', eventTypeFilter.trim())
+    if (eventActorFilter) params.set('actor', eventActorFilter)
+    const value = await fetch(`/api/events?${params}`).then((response) => response.json()).catch(() => null)
+    if (value) { setEvents((old) => [...old, ...(value.events || [])]); setNextEventBefore(value.nextBefore || null) }
+  }
+  async function applyPopulation() {
+    try {
+      const saved = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ patch: settings }) })
+      const savedValue = await saved.json()
+      if (!saved.ok) throw new Error(savedValue.error || 'Settings could not be saved')
+      setSettings(savedValue.settings)
+      const response = await fetch('/api/settings/apply-population', { method: 'POST' })
+      const value = await response.json()
+      if (!response.ok) throw new Error(value.error || 'Population could not be updated')
+      setToast(`Updated ${value.updated} persona profiles`)
+      const refresh = await getJSON()
+      if (!refresh.mocked) setData(refresh.data)
+    } catch (error) { setToast(error instanceof Error ? error.message : 'Population could not be updated') }
   }
   function navigate(target: Page) { setPage(target); if (target === 'profile') setProfileId(data.me.id) }
   function openProfile(id: string) { setProfileId(id); setPage('profile') }
@@ -225,6 +275,8 @@ function App() {
         <NavButton icon="heart" label="Notifications" active={page === 'notifications'} onClick={() => navigate('notifications')} />
         <NavButton icon="plus" label="Create" onClick={() => openComposer()} />
         <button className={`nav-button ${page === 'profile' && profileId === data.me.id ? 'active' : ''}`} onClick={() => navigate('profile')}><img className="nav-avatar" src={data.me.avatar} alt=""/><span>Profile</span></button>
+        <NavButton icon="grid" label="Activity archive" active={page === 'activity'} onClick={() => setPage('activity')} />
+        <NavButton icon="more" label="Simulation settings" active={page === 'settings'} onClick={() => setPage('settings')} />
       </nav>
       <button className="more-button"><Icon name="more"/><span>More</span></button>
       <div className="rail-foot"><span className="status-dot"/> Local experiment</div>
@@ -261,6 +313,10 @@ function App() {
       </section>}
 
       {page === 'notifications' && <section className="subpage notifications-page"><header className="page-header"><div><p className="eyebrow">YOUR ACTIVITY</p><h1>Notifications</h1></div><button className="quiet-button" onClick={markAllRead}>Mark all as read</button></header><h3 className="group-title">Today</h3>{data.notifications.map((item) => { const person = accountById.get(item.accountId) || data.me; return <div className={`notification-row ${item.isRead ? 'read' : ''}`} key={item.id}><button onClick={() => { readNotification(item.id); openProfile(person.id) }}><img src={person.avatar} alt=""/></button><p><b>{person.username}</b> {item.text} <span>{item.time}</span></p>{item.postImage && <img className="notification-thumb" src={item.postImage} alt="Post thumbnail"/>}{item.kind === 'follow' && <button className="follow-button" onClick={() => follow(person.id)}>Follow</button>}</div> })}</section>}
+
+      {page === 'activity' && <section className="subpage archive-page"><header className="page-header"><div><p className="eyebrow">LOCAL SIMULATION</p><h1>Activity archive</h1><p className="page-intro">A filterable log of persona actions, relationship changes, settings, and simulator errors.</p></div></header><div className="archive-filters"><label>Event type<input value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)} placeholder="e.g. message.sent"/></label><label>Account<select value={eventActorFilter} onChange={(e) => setEventActorFilter(e.target.value)}><option value="">All accounts</option><option value="human">You</option>{data.accounts.map((account) => <option key={account.id} value={account.id}>@{account.username}</option>)}</select></label><span>{events.length} events</span></div><div className="events-list">{events.map((event) => <article className="event-row" key={event.id}><time>{new Date(event.created_at).toLocaleString()}</time><b>@{event.username}</b><span>{event.type}</span><code>{JSON.stringify(event.payload)}</code></article>)}{!events.length && <p className="empty-state">No events match these filters.</p>}</div>{nextEventBefore && <button className="quiet-button load-older" onClick={() => void loadOlderEvents()}>Load older events</button>}</section>}
+
+      {page === 'settings' && <section className="subpage settings-page"><header className="page-header"><div><p className="eyebrow">EXPERIMENT CONTROLS</p><h1>Simulation settings</h1><p className="page-intro">Changes are stored locally in SQLite. The worker pool always stays at or below 10 personas.</p></div></header><div className="settings-grid"><article className="setting-card"><h2>Simulation pace</h2><label>Activity speed<select value={settings.speedMultiplier} onChange={(e) => setSettings({ ...settings, speedMultiplier: Number(e.target.value) })}>{[0.25,0.5,1,2,4,8,12].map((speed) => <option key={speed} value={speed}>{speed}×</option>)}</select><small>Changes the delay after each generated action. Existing scheduled times are kept.</small></label><label>Concurrent persona agents<select value={settings.maxActivePersonas} onChange={(e) => setSettings({ ...settings, maxActivePersonas: Number(e.target.value) })}>{Array.from({ length: 10 }, (_, i) => i + 1).map((count) => <option key={count} value={count}>{count}</option>)}</select><small>The orchestrator runs separately.</small></label></article><article className="setting-card"><h2>Population distribution</h2><label>Profiles from the United States: {settings.usShare}%<input type="range" min="0" max="100" value={settings.usShare} onChange={(e) => setSettings({ ...settings, usShare: Number(e.target.value) })}/></label><div className="range-pair"><label>Youngest age<input type="number" min="16" max="30" value={settings.minAge} onChange={(e) => setSettings({ ...settings, minAge: Number(e.target.value) })}/></label><label>Oldest age<input type="number" min="16" max="30" value={settings.maxAge} onChange={(e) => setSettings({ ...settings, maxAge: Number(e.target.value) })}/></label></div><small>Applying this redistributes ages and countries across the 100 original AI personas, then rebuilds their system.md files. Alternate accounts are left unchanged.</small><button className="quiet-button" disabled={mocked || settings.maxAge < settings.minAge} onClick={() => void applyPopulation()}>Apply to personas</button></article><article className="setting-card setting-warning"><h2>Alternate-account scenario</h2><p>When enabled, an AI persona blocked by your human profile can create one linked alternate account and send one non-sexual message. This models block evasion in the local experiment.</p><label className="toggle-row"><input type="checkbox" checked={settings.harassmentMode} onChange={(e) => setSettings({ ...settings, harassmentMode: e.target.checked })}/> Enable block-evasion scenario</label></article></div><button className="primary-button save-settings" disabled={mocked || savingSettings || settings.maxAge < settings.minAge} onClick={() => void saveSimulationSettings()}>{savingSettings ? 'Saving…' : 'Save settings'}</button></section>}
 
       {page === 'profile' && <section className="profile-page"><div className="profile-header"><img className="profile-avatar" src={currentProfile.avatar} alt=""/><div className="profile-info"><div className="profile-name-row"><h1>{currentProfile.username}</h1>{profileId === data.me.id ? <button className="quiet-button" onClick={() => setShowEdit(true)}>Edit profile</button> : <><button className="primary-button" onClick={() => follow(currentProfile.id)}>Follow</button><button className="quiet-button" onClick={() => openConversationWith(currentProfile.id)}>Message</button><button className="quiet-button" onClick={() => { void act('block.toggle', { targetId: currentProfile.id }); setToast('Block setting updated') }}>Block</button><button className="quiet-button" onClick={() => { void act('report.create', { targetType: 'account', targetId: currentProfile.id, reason: 'User report' }); setToast('Report submitted') }}>Report</button></>}</div><div className="profile-stats"><span><b>{visiblePosts.length}</b> posts</span><span><b>{profileId === data.me.id ? 248 : 1250}</b> followers</span><span><b>{profileId === data.me.id ? 301 : 412}</b> following</span></div><p><b>{currentProfile.name}</b>{currentProfile.pronouns && <span className="pronouns"> · {currentProfile.pronouns}</span>}<br/>{currentProfile.bio || 'Finding little moments worth keeping.'}</p></div></div><div className="profile-tabs"><button className="active"><Icon name="grid" size={14}/> POSTS</button>{profileId === data.me.id && <button onClick={() => openComposer()}><Icon name="plus" size={14}/> NEW POST</button>}</div><div className="profile-grid">{visiblePosts.map((post) => <button key={post.id} onClick={() => setToast(post.caption)}><img src={post.image} alt={post.caption}/><span><Icon name="heart" size={16} filled/> {post.likes} &nbsp; <Icon name="comment" size={16}/> {post.comments}</span></button>)}</div></section>}
     </main>

@@ -39,3 +39,10 @@ Instagram benzeri, web tabanlı yerel deney platformu. Hesapların tamamı AI ku
 ## Sürüm planı ve karar durumu
 
 Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; kalan teknik belirsizlikler MVP sırasında ölçülüp backlog'a yazılacak.
+
+## 1.0 geliştirme notları — 2026-11-13
+
+- Kullanıcı MVP'yi inceledi: başlangıç feed görsellerinin SVG çizimleri gerçek fotoğraf gibi görünmedi. 1.0'da Codex imagegen ile dört yerel fotoğraf üretildi; persona postları imagegen üretmeye devam eder.
+- Simülasyon ayarları hız, 1–10 eşzamanlı persona, ABD oranı, yaş aralığı ve varsayılanı kapalı blok aşma senaryosunu kapsıyor.
+- Olay arşivi filtreli/sayfalı. DM ve arkadaşlık olaylarından son 20 kayıt persona hafızasına yazılır; son 12 kayıt `system.md` içinde gösterilir.
+- Hata tekrarları 15 dakikadan başlayıp en fazla 6 saate çıkan artan gecikme kullanır.

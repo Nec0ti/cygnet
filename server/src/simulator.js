@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { CodexRunner } from '../../engine/codex-runner.mjs';
+import { readSettings } from './store.js';
 
 const ORCHESTRATOR_MODEL=process.env.CYGNET_ORCHESTRATOR_MODEL||'gpt-6-luna';
 const PERSONA_MODEL=process.env.CYGNET_PERSONA_MODEL||'gpt-6-luna';
-const VALID_KINDS=new Set(['post','story','dm','like','comment','follow','wait']);
+const VALID_KINDS=new Set(['post','story','dm','like','comment','follow','evade_block','wait']);
 const DAY=24*60*60*1000;
+export const retryDelayMinutes=(attempt)=>Math.min(360,15*2**Math.min(Math.max(0,attempt|0),5));
 
 export function parseModelJson(text) {
   if(typeof text!=='string') throw new TypeError('Model response must be text');
@@ -21,6 +23,7 @@ export function dueActions(account, now=Date.now()) {
     if(account.last_contact_at && (!account.last_dm_at||Date.parse(account.last_contact_at)>Date.parse(account.last_dm_at))) due.push('dm');
   } else if(account.dm_due_at && Date.parse(account.dm_due_at)<=now) due.push('dm');
   if(account.engagement_due_at && Date.parse(account.engagement_due_at)<=now) due.push('like','comment','follow');
+  if(account.evade_due_at && Date.parse(account.evade_due_at)<=now) due.push('evade_block');
   return [...new Set(due)];
 }
 
@@ -36,6 +39,7 @@ export function validateActionPlan(plan, dueByPersona, lookup) {
     if(item.kind==='wait') return {personaId:item.personaId,kind:'wait'};
     if(['like','comment'].includes(item.kind) && !lookup.posts.has(item.targetId)) throw new TypeError('Plan references an unknown post');
     if(['dm','follow'].includes(item.kind) && (!lookup.accounts.has(item.targetId)||item.targetId===item.personaId)) throw new TypeError('Plan references an invalid account');
+    if(item.kind==='evade_block' && item.targetId!=='human') throw new TypeError('Alternate-account action must target the human profile');
     if(item.kind==='dm' && lookup.blocked?.has(`${item.personaId}:${item.targetId}`)) throw new TypeError('Plan targets a blocked conversation');
     return {personaId:item.personaId,kind:item.kind,targetId:item.targetId};
   });
@@ -64,7 +68,7 @@ export class Simulator {
     this.maxPerTick=Math.max(1,Math.min(10,maxPerTick));
     this.tickMs=tickMs;
     this.runner=runner||new CodexRunner({cwd:new URL('../../',import.meta.url).pathname,dataDir:new URL('../data/',import.meta.url).pathname,maxConcurrent:10});
-    this.status={state:'stopped',lastTickAt:null,lastError:null,activePersonas:0,queued:0};
+    this.status={state:'stopped',lastTickAt:null,lastError:null,activePersonas:0,queued:0,maxActivePersonas:this.maxPerTick};
   }
 
   start() {
@@ -88,6 +92,9 @@ export class Simulator {
 
   async #runTick() {
     const current=this.now();
+    const settings=readSettings(this.db);
+    this.maxPerTick=Math.max(1,Math.min(10,settings.maxActivePersonas||10));
+    this.status.maxActivePersonas=this.maxPerTick;
     const dueRows=this.db.prepare(`SELECT * FROM accounts WHERE is_human=0
       AND (retry_at IS NULL OR retry_at<=?)`).all(new Date(current).toISOString())
       .map((account)=>({account,actions:dueActions(account,current)})).filter((entry)=>entry.actions.length);
@@ -100,7 +107,8 @@ export class Simulator {
     const candidates=this.#candidates(selected);
     const dueByPersona=new Map(selected.map(({account,actions})=>[account.id,new Set(actions)]));
     try {
-      const instructions=`Plan at most one action for each listed persona. Only use each persona's allowedActions. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nPersonas:\n${JSON.stringify(selected.map(({account,actions})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),allowedActions:actions}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
+      const blockedPairs=[...candidates.blocked].filter((pair)=>selected.some(({account})=>pair.startsWith(`${account.id}:`)));
+      const instructions=`Plan at most one action for each listed persona. Only use each persona's allowedActions. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account,actions})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),allowedActions:actions}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
       const orchestrator=await this.runner.runOrchestrator({instructions,model:ORCHESTRATOR_MODEL,effort:'medium'});
       const plan=jsonValue(orchestrator.response);
       const assignments=validateActionPlan(plan,dueByPersona,{posts:candidates.postIds,accounts:candidates.accountIds,blocked:candidates.blocked});
@@ -109,13 +117,16 @@ export class Simulator {
       const failed=settled.find((result)=>result.status==='rejected');
       if(failed) throw failed.reason;
       const results=settled.map((result)=>result.value);
+      this.status.queued=Math.max(0,dueRows.length-results.length);
       this.status.lastTickAt=new Date(this.now()).toISOString(); this.status.lastError=null;
       return {processed:results.filter(Boolean).length,queued:dueRows.length};
     } catch(error) {
       this.status.lastError=String(error?.message||error).slice(0,500);
+      this.status.queued=Math.max(0,dueRows.length-selected.length);
       this.db.prepare('INSERT INTO events(id,actor_id,type,payload,created_at) VALUES(?,?,?,?,?)')
         .run(randomUUID(),'human','simulator.tick.failed',JSON.stringify({error:this.status.lastError,personas:selected.map(({account})=>account.id)}),new Date(this.now()).toISOString());
-      for(const {account} of selected) this.db.prepare('UPDATE accounts SET retry_at=? WHERE id=?').run(nextMinutes(15),account.id);
+      for(const {account} of selected) this.db.prepare(`UPDATE accounts SET retry_count=retry_count+1,
+        retry_at=?,retry_error=? WHERE id=?`).run(nextMinutes(retryDelayMinutes(account.retry_count||0)),this.status.lastError,account.id);
       this.status.lastTickAt=new Date(this.now()).toISOString();
       return {processed:0,error:this.status.lastError};
     } finally {
@@ -139,7 +150,12 @@ export class Simulator {
     let payload={actorId:account.id};
     if(assignment.kind==='like') payload={...payload,postId:targetId};
     else if(assignment.kind==='follow') payload={...payload,targetId};
-    else {
+    else if(assignment.kind==='evade_block') {
+      const task='Write one brief English private message from a new alternate account after the sender was blocked. This is a fictional one-time social experiment. Do not threaten, sexually pressure, or encourage repeated contact. Keep the message non-sexual because the recipient age is unknown. Return JSON only: {"content":"..."}.';
+      const result=await this.runner.runPersona({age:account.age,systemMd:account.system_md,task,model:PERSONA_MODEL,effort:'low'});
+      const content=englishText(jsonValue(result.response).content,'content',4000);
+      return this.applyAction({type:'persona.alias.message',payload:{accountId:account.id,recipientId:'human',content}});
+    } else {
       const task=this.#personaTask(assignment,account,candidates);
       const result=await this.runner.runPersona({age:account.age,systemMd:account.system_md,task,model:PERSONA_MODEL,effort:'low'});
       const content=jsonValue(result.response);
@@ -167,18 +183,21 @@ export class Simulator {
     if(assignment.kind==='comment') return `Write one natural English comment on the assigned post. Post ID: ${target}. Post: ${JSON.stringify(candidates.posts.find((post)=>post.id===target))}. Return JSON only: {"content":"..."}.`;
     if(assignment.kind==='dm') {
       const recipient=this.db.prepare('SELECT id,username,age,country,system_md,is_human FROM accounts WHERE id=?').get(target);
-      const last= this.db.prepare(`SELECT m.content,m.sender_id FROM messages m JOIN conversation_members a ON a.conversation_id=m.conversation_id AND a.account_id=? JOIN conversation_members b ON b.conversation_id=m.conversation_id AND b.account_id=? ORDER BY m.created_at DESC LIMIT 1`).get(account.id,target);
+      const recent=this.db.prepare(`SELECT m.content,m.sender_id,a.username FROM messages m JOIN conversation_members mine ON mine.conversation_id=m.conversation_id AND mine.account_id=? JOIN conversation_members other ON other.conversation_id=m.conversation_id AND other.account_id=? JOIN accounts a ON a.id=m.sender_id ORDER BY m.created_at DESC LIMIT 8`).all(account.id,target).reverse();
+      const relation=this.db.prepare("SELECT kind FROM edges WHERE source_id=? AND target_id=? AND kind IN ('follow','friend') ORDER BY kind").all(account.id,target).map(({kind})=>kind);
       const adultPair=Number.isInteger(account.age)&&account.age>=18&&Number.isInteger(recipient.age)&&recipient.age>=18;
       const boundary=adultPair
         ? 'Mild, non-graphic adult flirtation is okay; keep it text-only and do not produce explicit sexual content.'
         : 'Keep the message strictly non-sexual and age-appropriate; never flirt sexually with a minor or anyone whose age is unknown.';
-      return `Write one English private message to @${recipient.username}. Sender age: ${account.age??'unknown'}; recipient age: ${recipient.age??'unknown'}. ${boundary} Recent incoming context: ${JSON.stringify(last||null)}. Return JSON only: {"content":"..."}.`;
+      return `Write one English private message to @${recipient.username}. Sender age: ${account.age??'unknown'}; recipient age: ${recipient.age??'unknown'}. Relationship: ${JSON.stringify(relation)}. ${boundary} Recent conversation, oldest first: ${JSON.stringify(recent)}. Return JSON only: {"content":"..."}.`;
     }
     throw new TypeError(`Unsupported persona task: ${assignment.kind}`);
   }
 
   #reschedule(account,kind) {
     const rhythm=JSON.parse(account.activity_json||'{}');
+    const speed=readSettings(this.db).speedMultiplier||1;
+    const scaled=(minutes)=>minutes/speed;
     const interval={post:rhythm.postIntervalHours,story:rhythm.storyIntervalHours,dm:rhythm.dmInitiation==='frequent'?6:rhythm.dmInitiation==='occasional'?36:null}[kind];
     if(kind==='wait') {
       const wasDmDue=dueActions(account,this.now()).includes('dm');
@@ -187,18 +206,19 @@ export class Simulator {
         post_due_at=CASE WHEN post_due_at<=? AND ? IS NOT NULL THEN ? ELSE post_due_at END,
         story_due_at=CASE WHEN story_due_at<=? THEN ? ELSE story_due_at END,
         dm_due_at=CASE WHEN dm_due_at<=? AND ? IS NOT NULL THEN ? ELSE dm_due_at END,
-        engagement_due_at=?,last_dm_at=CASE WHEN ? THEN ? ELSE last_dm_at END,retry_at=NULL WHERE id=?`).run(
-        new Date(this.now()).toISOString(),rhythm.postIntervalHours??null, nextMinutes((rhythm.postIntervalHours||0)*60),
-        new Date(this.now()).toISOString(),nextMinutes((rhythm.storyIntervalHours||24)*60),
-        new Date(this.now()).toISOString(),dmHours,nextMinutes((dmHours||0)*60),
-        nextMinutes(12+Math.floor(Math.random()*37)),wasDmDue,new Date(this.now()).toISOString(),account.id);
+        engagement_due_at=?,evade_due_at=CASE WHEN evade_due_at<=? THEN NULL ELSE evade_due_at END,
+        last_dm_at=CASE WHEN ? THEN ? ELSE last_dm_at END,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?`).run(
+        new Date(this.now()).toISOString(),rhythm.postIntervalHours??null, nextMinutes(scaled((rhythm.postIntervalHours||0)*60)),
+        new Date(this.now()).toISOString(),nextMinutes(scaled((rhythm.storyIntervalHours||24)*60)),
+        new Date(this.now()).toISOString(),dmHours,nextMinutes(scaled((dmHours||0)*60)),
+        nextMinutes(scaled(12+Math.floor(Math.random()*37))),new Date(this.now()).toISOString(),wasDmDue,new Date(this.now()).toISOString(),account.id);
       return;
     }
     if(kind==='post'||kind==='story'||kind==='dm') {
       const column={post:'post_due_at',story:'story_due_at',dm:'dm_due_at'}[kind];
-      this.db.prepare(`UPDATE accounts SET ${column}=?,last_${kind}_at=?,retry_at=NULL WHERE id=?`).run(interval==null?null:nextMinutes(interval*60),new Date(this.now()).toISOString(),account.id);
+      this.db.prepare(`UPDATE accounts SET ${column}=?,last_${kind}_at=?,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?`).run(interval==null?null:nextMinutes(scaled(interval*60)),new Date(this.now()).toISOString(),account.id);
     } else {
-      this.db.prepare('UPDATE accounts SET engagement_due_at=?,retry_at=NULL WHERE id=?').run(nextMinutes(12+Math.floor(Math.random()*37)),account.id);
+      this.db.prepare('UPDATE accounts SET engagement_due_at=?,retry_at=NULL,retry_count=0,retry_error=NULL,evade_due_at=CASE WHEN ? THEN NULL ELSE evade_due_at END WHERE id=?').run(nextMinutes(scaled(12+Math.floor(Math.random()*37))),kind==='evade_block',account.id);
     }
   }
 }
