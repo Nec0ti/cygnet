@@ -39,6 +39,15 @@
 - [x] Persona cevaplarında yaş sınırı ve karakter kurallarının korunmasını self-check ile güvenceye alma.
 - [x] Kontrollü deney, karşılaştırma ve salt okunur replay akışını izole DB/API'de doğrulama.
 
+## 2.1 — profil ve deney sıfırlama
+
+- [x] More menüsünden Activity archive, Simulation settings ve Research workspace alanlarına erişim.
+- [x] AI profillerinde yerel raster portreleri ve insan profili için fotoğraf yükleme.
+- [x] Sahte takipçi/takip edilen sayılarını kaldır; sayıları gerçek ilişki kenarlarından göster ve başlangıçta sıfırla.
+- [x] Sosyal kişiliklerin takip eylemlerini orkestratör planına bağla.
+- [x] Platform dakika sayısını yazarak çift onay isteyen ve ilk duruma döndüren reset akışı; insan profili fotoğrafını ve temel bilgilerini koru.
+- [ ] Aynı modüler kontrolleri, gerçek Chromium E2E akışlarını ve 100/1.000 profilli benchmark'ı yeni goal altında çalıştır; hataları düzelt ve raporla.
+
 ## Yerel kullanım süresi, dayanıklılık ve benchmark
 
 - [x] Sunucu açık süresini ve görünür/odaklı platform süresini ayrı, kalıcı SQLite sayaçlarında biriktir; restart aralıklarını sayma.
@@ -63,5 +72,6 @@
 - [x] 1.1 deney raporu araçları: JSON/CSV, ayar snapshot'ı, metrikler ve UI
 - [x] 2.0 keşif, erişilebilirlik, kohort karşılaştırma ve salt okunur replay
 - [ ] Yerel simülasyonu bir hafta çalıştırıp gerçek deney verisiyle raporu üretme
+- [ ] Profil fotoğrafları, gerçek takip sayıları, More menüsü ve çift onaylı reset için gerçek tarayıcı/API doğrulaması
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.

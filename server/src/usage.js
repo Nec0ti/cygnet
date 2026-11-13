@@ -68,6 +68,19 @@ export function stopServerRuntime(runtime) {
   runtime.db.prepare("UPDATE server_runtime_runs SET status='stopped',ended_at=checkpoint_at WHERE id=? AND status='running'").run(runtime.id);
 }
 
+export function resetUsage(db, runtime, nowMs = Date.now()) {
+  const now = iso(nowMs);
+  begin(db);
+  try {
+    db.prepare('DELETE FROM platform_sessions').run();
+    db.prepare('DELETE FROM server_runtime_runs WHERE id!=?').run(runtime.id);
+    db.prepare("UPDATE server_runtime_runs SET started_at=?,checkpoint_at=?,ended_at=NULL,elapsed_ms=0,status='running' WHERE id=?").run(now,now,runtime.id);
+    db.prepare('UPDATE usage_state SET platform_total_ms=0,platform_active=0,platform_checkpoint_at=? WHERE id=1').run(now);
+    commit(db);
+  } catch (error) { rollback(db); throw error; }
+  runtime.lastMonoMs=runtime.monotonicNow();
+}
+
 export function serverRuntimeTotalMs(db, runtime = null) {
   const total = db.prepare('SELECT coalesce(sum(elapsed_ms),0) AS total FROM server_runtime_runs').get().total;
   if (!runtime) return total;

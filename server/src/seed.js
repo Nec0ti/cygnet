@@ -1,6 +1,8 @@
 import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction, DATA_ROOT } from './store.js';
 import { createInitialProfiles } from '../../seed/generate.mjs';
 import { randomUUID } from 'node:crypto';
+import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const captions = [
   'A small reset after a long week.', 'The light was too good not to stop.',
@@ -36,10 +38,21 @@ function scheduleTimes(profile, index = 0) {
   };
 }
 
+function ensureProfileAvatar(db, profile, index, dataRoot = DATA_ROOT) {
+  if (profile.avatar_filename) return;
+  const filename=`profile-${String(index%20+1).padStart(2,'0')}.jpg`, mediaDir=join(dataRoot,'media');
+  mkdirSync(mediaDir,{recursive:true});
+  const source=join(import.meta.dirname,'../assets/profile-avatars',`portrait-${String(index%20).padStart(2,'0')}.jpg`);
+  const target=join(mediaDir,filename);
+  if(!existsSync(target)) copyFileSync(source,target);
+  db.prepare('UPDATE accounts SET avatar_filename=? WHERE id=?').run(filename,profile.id);
+}
+
 function reconcileExisting(db, { dataRoot } = {}) {
   const profiles=db.prepare('SELECT * FROM accounts WHERE is_human=0 ORDER BY id').all();
   for (let i=0;i<profiles.length;i++) {
     const row=profiles[i];
+    ensureProfileAvatar(db,row,i,dataRoot);
     if (!row.activity_json || row.activity_json==='{}') {
       const traits=JSON.parse(row.traits_json||'{}');
       const shy=Number(traits.shyness||0), social=Number(traits.sociability||0);
@@ -57,6 +70,38 @@ function reconcileExisting(db, { dataRoot } = {}) {
   }
 }
 
+function insertSeedData(db, options = {}) {
+  const profiles=options.profiles || createInitialProfiles(options.seed ?? 'cygnet-v1');
+  const current=now();
+  const insertAccount=db.prepare(`INSERT INTO accounts
+    (id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,
+      post_due_at,story_due_at,dm_due_at,engagement_due_at,system_md,avatar_filename,created_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const me=options.humanProfile;
+  insertAccount.run(HUMAN_ID,me?.name||'You',me?.username||'you',me?.bio||'',me?.pronouns||'',null,'',1,'','{}','','{}',null,null,null,null,'',me?.avatar_filename||null,current);
+  for(let i=0;i<profiles.length;i++) {
+    const p=profiles[i], scheduled=scheduleTimes(p,i);
+    insertAccount.run(p.id,p.name,p.username,p.bio,p.pronouns,p.age,p.country,0,p.tone,JSON.stringify(p.traits),
+      p.notes.join('\n'),JSON.stringify(p.activity),scheduled.post_due_at,scheduled.story_due_at,scheduled.dm_due_at,
+      scheduled.engagement_due_at,p.systemMd,null,current);
+  }
+  const insertEdge=db.prepare(`INSERT INTO edges(source_id,target_id,kind,created_at) VALUES(?,?,?,?)`);
+  for(const p of profiles) for(const friend of p.friends) insertEdge.run(p.id,friend,'friend',current);
+  const post=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at) VALUES(?,?,?,?,?)');
+  for(let i=0;i<28;i++) post.run(randomUUID(),profiles[(i*37+12)%profiles.length].id,captions[i%captions.length],'post',new Date(Date.now()-i*3600000).toISOString());
+  const story=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at,expires_at) VALUES(?,?,?,?,?,?)');
+  for(let i=0;i<12;i++) story.run(randomUUID(),profiles[(i*29+6)%profiles.length].id,captions[(i+3)%captions.length],'story',current,afterHours(24));
+  logEvent(db,HUMAN_ID,'population.seeded',{personas:100,posts:28,stories:12,seed:options.seed??'cygnet-v1'});
+  return profiles;
+}
+
+function saveSeedProfiles(db, profiles, options = {}) {
+  for(let i=0;i<profiles.length;i++) {
+    ensureProfileAvatar(db,profiles[i],i,options.dataRoot);
+    saveSystemFile(db,profiles[i].id,options.dataRoot);
+  }
+}
+
 export function seedStore(db, options = {}) {
   const count = db.prepare('SELECT COUNT(*) AS n FROM accounts').get().n;
   if (count) {
@@ -64,28 +109,24 @@ export function seedStore(db, options = {}) {
     return { seeded: false, accounts: count };
   }
   const profiles=createInitialProfiles(options.seed ?? 'cygnet-v1');
-  const current=now();
-  const insertAccount=db.prepare(`INSERT INTO accounts
-    (id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,
-      post_due_at,story_due_at,dm_due_at,engagement_due_at,system_md,created_at)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  transaction(db,()=>insertSeedData(db,{...options,profiles}));
+  saveSeedProfiles(db,profiles,options);
+  return {seeded:true,accounts:101};
+}
+
+export function resetSeedStore(db, options = {}) {
+  const me=db.prepare('SELECT name,username,bio,pronouns,avatar_filename FROM accounts WHERE id=?').get(HUMAN_ID);
+  const profiles=createInitialProfiles(options.seed ?? 'cygnet-v1');
   transaction(db,()=>{
-    insertAccount.run(HUMAN_ID,'You','you','','',null,'',1,'','{}','','{}',null,null,null,null,'',current);
-    for(let i=0;i<profiles.length;i++) {
-      const p=profiles[i], scheduled=scheduleTimes(p,i);
-      insertAccount.run(p.id,p.name,p.username,p.bio,p.pronouns,p.age,p.country,0,p.tone,JSON.stringify(p.traits),
-        p.notes.join('\n'),JSON.stringify(p.activity),scheduled.post_due_at,scheduled.story_due_at,scheduled.dm_due_at,
-        scheduled.engagement_due_at,p.systemMd,current);
-    }
-    const insertEdge=db.prepare(`INSERT INTO edges(source_id,target_id,kind,created_at) VALUES(?,?,?,?) ON CONFLICT DO NOTHING`);
-    for(const p of profiles) for(const friend of p.friends) insertEdge.run(p.id,friend,'friend',current);
-    const post=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at) VALUES(?,?,?,?,?)');
-    for(let i=0;i<28;i++) post.run(randomUUID(),profiles[(i*37+12)%profiles.length].id,captions[i%captions.length],'post',new Date(Date.now()-i*3600000).toISOString());
-    const story=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at,expires_at) VALUES(?,?,?,?,?,?)');
-    for(let i=0;i<12;i++) story.run(randomUUID(),profiles[(i*29+6)%profiles.length].id,captions[(i+3)%captions.length],'story',current,afterHours(24));
-    logEvent(db,HUMAN_ID,'population.seeded',{personas:100,posts:28,stories:12,seed:options.seed??'cygnet-v1'});
+    for(const table of ['likes','comments','messages','conversation_members','conversations','notifications','reports','persona_memories','edges','posts','events','experiments']) db.prepare(`DELETE FROM ${table}`).run();
+    db.prepare('DELETE FROM accounts WHERE alias_of IS NOT NULL').run();
+    db.prepare('DELETE FROM accounts').run();
+    db.prepare('DELETE FROM settings').run();
+    insertSeedData(db,{...options,humanProfile:me,profiles});
+    const insert=db.prepare('INSERT INTO settings(key,value,updated_at) VALUES(?,?,?)');
+    for(const [key,value] of Object.entries({speedMultiplier:1,maxActivePersonas:10,harassmentMode:false,usShare:60,minAge:16,maxAge:30})) insert.run(key,JSON.stringify(value),now());
   });
-  for(const p of profiles) saveSystemFile(db,p.id,options.dataRoot);
+  saveSeedProfiles(db,profiles,options);
   return {seeded:true,accounts:101};
 }
 

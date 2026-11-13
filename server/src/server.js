@@ -1,10 +1,10 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, unlinkSync, rmSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openStore, HUMAN_ID, DATA_ROOT, logEvent, saveSystemFile, transaction, readSettings, writeSettings, rememberPersona } from './store.js';
-import { seedStore } from './seed.js';
+import { seedStore, resetSeedStore } from './seed.js';
 import { Simulator } from './simulator.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
 import { connectFriends } from './friend-hook.js';
@@ -13,7 +13,7 @@ import { compareExperiment, createExperiment, ensureExperimentSchema, finishExpe
 import {
   checkpointPlatformUsage, checkpointServerRuntime, endPlatformSession, ensureUsageSchema,
   heartbeatPlatformSession, startPlatformSession, startServerRuntime, stopPlatformUsage,
-  stopServerRuntime, USAGE_HEARTBEAT_MS, usageSummary, validSessionId,
+  stopServerRuntime, resetUsage, USAGE_HEARTBEAT_MS, usageSummary, validSessionId,
 } from './usage.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
@@ -23,6 +23,7 @@ ensureUsageSchema(DB);
 const SERVER_RUNTIME = startServerRuntime(DB);
 seedStore(DB,{dataRoot:DATA_ROOT});
 const MEDIA_DIR = join(DATA_ROOT, 'media');
+const PERSONAS_DIR = join(DATA_ROOT, 'personas');
 mkdirSync(MEDIA_DIR, { recursive: true });
 const PORT = Number(process.env.CYGNET_PORT || 4179);
 const TICK_MS=Math.max(1_000,Number(process.env.CYGNET_TICK_MS)||60_000);
@@ -42,6 +43,9 @@ function accountView(row) {
     pronouns: row.pronouns, age: row.age, country: row.country,
     isHuman: Boolean(row.is_human), tone: row.tone,
     traits: JSON.parse(row.traits_json || '{}'),
+    avatarUrl: row.avatar_filename ? `/media/${encodeURIComponent(row.avatar_filename)}` : null,
+    followers: DB.prepare("SELECT count(*) AS n FROM edges WHERE target_id=? AND kind='follow'").get(row.id).n,
+    following: DB.prepare("SELECT count(*) AS n FROM edges WHERE source_id=? AND kind='follow'").get(row.id).n,
   };
   if (!account.isHuman) {
     account.systemMd = row.system_md;
@@ -168,16 +172,17 @@ export function action({ type, payload = {} }) {
     switch(type) {
       case 'profile.update': {
         const patch = payload.patch || {};
-        const allowed = ['name','username','bio','pronouns'];
+        const allowed = ['name','username','bio','pronouns','avatarData'];
         for (const key of Object.keys(patch)) if (!allowed.includes(key)) throw Object.assign(new Error(`Cannot edit ${key}`),{status:400});
         const current = accountStmt.get(HUMAN_ID);
         const username=patch.username===undefined?current.username:requireText(patch.username,'username',30);
         if(!/^[a-z0-9._]+$/.test(username) || (username!==current.username && DB.prepare('SELECT 1 FROM accounts WHERE username=?').get(username))) throw Object.assign(new Error('Username must be unique and use lowercase letters, numbers, dots, or underscores'),{status:400});
-        DB.prepare('UPDATE accounts SET name=?,username=?,bio=?,pronouns=? WHERE id=?').run(
-          patch.name === undefined ? current.name : requireText(patch.name,'name',80),
-          username,
-          patch.bio === undefined ? current.bio : requireText(patch.bio,'bio',500,true),
-          patch.pronouns === undefined ? current.pronouns : requireText(patch.pronouns,'pronouns',40,true), HUMAN_ID);
+        const name=patch.name===undefined?current.name:requireText(patch.name,'name',80);
+        const bio=patch.bio===undefined?current.bio:requireText(patch.bio,'bio',500,true);
+        const pronouns=patch.pronouns===undefined?current.pronouns:requireText(patch.pronouns,'pronouns',40,true);
+        const avatarFilename=patch.avatarData===undefined?current.avatar_filename:mediaFile({data:patch.avatarData});
+        DB.prepare('UPDATE accounts SET name=?,username=?,bio=?,pronouns=?,avatar_filename=? WHERE id=?')
+          .run(name,username,bio,pronouns,avatarFilename,HUMAN_ID);
         result = accountView(accountStmt.get(HUMAN_ID));
         break;
       }
@@ -383,6 +388,24 @@ const server=createServer(async (req,res)=>{
       }
       if(phase==='end') return send(res,200,endPlatformSession(DB,sessionId),cors);
       throw Object.assign(new Error('Unknown platform session action'),{status:404});
+    }
+    if(req.method==='POST' && url.pathname==='/api/reset') {
+      const body=await parseBody(req);
+      if(!Number.isSafeInteger(body?.platformMinutes)||body.platformMinutes<0) throw Object.assign(new Error('Enter the displayed platform minutes to reset'),{status:400});
+      if(simulator.busy || simulator.status.activePersonas>0) throw Object.assign(new Error('Wait for the active persona jobs to finish, then try again'),{status:409});
+      const currentMinutes=Math.floor(usageSummary(DB,SERVER_RUNTIME).platformMs/60_000);
+      if(body.platformMinutes!==currentMinutes) return send(res,409,{error:'Platform time changed. Enter the updated minute count.',currentMinutes},cors);
+      resetSeedStore(DB,{dataRoot:DATA_ROOT});
+      const kept=new Set(DB.prepare('SELECT avatar_filename FROM accounts WHERE avatar_filename IS NOT NULL').all().map(({avatar_filename})=>avatar_filename));
+      for(const filename of readdirSync(MEDIA_DIR)) if(!kept.has(filename)) {
+        try { unlinkSync(join(MEDIA_DIR,filename)); } catch { /* Reset is already committed; an orphan can be removed later. */ }
+      }
+      const keptPersonas=new Set(DB.prepare('SELECT id FROM accounts WHERE is_human=0').all().map(({id})=>id));
+      for(const entry of readdirSync(PERSONAS_DIR,{withFileTypes:true})) if(entry.isDirectory()&&!keptPersonas.has(entry.name)) {
+        try { rmSync(join(PERSONAS_DIR,entry.name),{recursive:true,force:true}); } catch { /* Reset is already committed; an orphan can be removed later. */ }
+      }
+      resetUsage(DB,SERVER_RUNTIME);
+      return send(res,200,{ok:true},cors);
     }
     if(req.method==='GET' && url.pathname==='/api/bootstrap') return send(res,200,bootstrap(),cors);
     if(req.method==='GET' && url.pathname==='/api/simulator') return send(res,200,simulator.status,cors);

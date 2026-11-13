@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ResearchPanel } from './ResearchPanel'
 import { createPlatformUsage } from './platform-usage.mjs'
 
-type Account = { id: string; name: string; username: string; avatar: string; bio?: string; pronouns?: string; country?: string; verified?: boolean }
+type Account = { id: string; name: string; username: string; avatar: string; bio?: string; pronouns?: string; country?: string; followers?: number; following?: number; followedByMe?: boolean; verified?: boolean }
 type Post = { id: string; accountId: string; image: string; caption: string; location?: string; likes: number; comments: number; time: string; createdAt?: string; liked?: boolean }
 type Story = { id: string; accountId: string; image?: string; caption?: string; seen?: boolean }
 type Notification = { id: string; kind: string; accountId: string; text: string; time: string; postImage?: string; isRead?: boolean }
@@ -80,6 +80,7 @@ function fromAPI(raw: any): Bootstrap {
     id: value.id, name: value.name, username: value.username,
     avatar: value.avatarUrl || avatar(value.name.split(/\s+/).map((part: string) => part[0]).join('').slice(0, 2), '#b9c4ad'),
     bio: value.bio, pronouns: value.pronouns, country: value.country,
+    followers: value.followers || 0, following: value.following || 0, followedByMe: value.followedByMe,
   })
   const me = account(raw.me)
   const accounts = raw.accounts.map(account)
@@ -153,6 +154,12 @@ function App() {
   const [showEdit, setShowEdit] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [resetStep, setResetStep] = useState<0 | 1 | 2>(0)
+  const [resetMinutes, setResetMinutes] = useState<number | null>(null)
+  const [resetTypedMinutes, setResetTypedMinutes] = useState('')
+  const [resetError, setResetError] = useState('')
+  const [resetting, setResetting] = useState(false)
   const [settings, setSettings] = useState<SimSettings>({ speedMultiplier: 1, maxActivePersonas: 10, harassmentMode: false, usShare: 60, minAge: 16, maxAge: 30 })
   const [events, setEvents] = useState<SimEvent[]>([])
   const [nextEventBefore, setNextEventBefore] = useState<string | null>(null)
@@ -202,6 +209,31 @@ function App() {
     } catch (error) { setToast(error instanceof Error ? error.message : 'Settings could not be saved') }
     finally { setSavingSettings(false) }
   }
+  async function confirmResetStep() {
+    setResetError('')
+    try {
+      const response = await fetch('/api/usage')
+      if (!response.ok) throw new Error('Could not read current platform time')
+      const usage = await response.json()
+      setResetMinutes(Math.floor(usage.platformMs / 60_000))
+      setResetTypedMinutes('')
+      setResetStep(2)
+    } catch (error) { setResetError(error instanceof Error ? error.message : 'Could not read current platform time') }
+  }
+  async function resetSimulation() {
+    if (resetMinutes === null || resetTypedMinutes !== String(resetMinutes)) return
+    setResetting(true); setResetError('')
+    try {
+      const response = await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ platformMinutes: resetMinutes }) })
+      const value = await response.json()
+      if (!response.ok) {
+        if (Number.isInteger(value.currentMinutes)) setResetMinutes(value.currentMinutes)
+        throw new Error(value.error || 'Reset failed')
+      }
+      window.location.reload()
+    } catch (error) { setResetError(error instanceof Error ? error.message : 'Reset failed') }
+    finally { setResetting(false) }
+  }
   async function loadOlderEvents() {
     if (!nextEventBefore) return
     const params = new URLSearchParams({ limit: '100', before: nextEventBefore })
@@ -237,7 +269,16 @@ function App() {
     setData((old) => ({ ...old, posts: old.posts.map((post) => post.id === id ? { ...post, liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) } : post) }))
     void act('like.toggle', { postId: id })
   }
-  function follow(id: string) { void act('follow.toggle', { targetId: id }); setToast('Following') }
+  async function follow(id: string) {
+    const result = await act('follow.toggle', { targetId: id })
+    if (!result) return
+    const delta = result.following ? 1 : -1
+    setData((old) => ({ ...old,
+      me: { ...old.me, following: Math.max(0, (old.me.following || 0) + delta) },
+      accounts: old.accounts.map((account) => account.id === id ? { ...account, followers: Math.max(0, (account.followers || 0) + delta), followedByMe: result.following } : account),
+    }))
+    setToast(result.following ? 'Following' : 'Unfollowed')
+  }
   async function sendMessage(mediaData?: string) {
     if ((!draft.trim() && !mediaData) || (!conversation && !newRecipientId)) return
     const message = { id: crypto.randomUUID(), from: 'me' as const, text: draft.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), image: mediaData }
@@ -296,11 +337,16 @@ function App() {
         <NavButton icon="heart" label="Notifications" active={page === 'notifications'} onClick={() => navigate('notifications')} />
         <NavButton icon="plus" label="Create" onClick={() => openComposer()} />
         <button className={`nav-button ${page === 'profile' && profileId === data.me.id ? 'active' : ''}`} onClick={() => navigate('profile')} aria-current={page === 'profile' && profileId === data.me.id ? 'page' : undefined}><img className="nav-avatar" src={data.me.avatar} alt=""/><span>Profile</span></button>
-        <NavButton icon="grid" label="Activity archive" active={page === 'activity'} onClick={() => setPage('activity')} />
-        <NavButton icon="explore" label="Research workspace" active={page === 'research'} onClick={() => setPage('research')} />
-        <NavButton icon="more" label="Simulation settings" active={page === 'settings'} onClick={() => setPage('settings')} />
       </nav>
-      <button className="more-button"><Icon name="more"/><span>More</span></button>
+      <div className="more-area"><button className="more-button" aria-haspopup="menu" aria-expanded={showMoreMenu} onClick={() => setShowMoreMenu((open) => !open)}><Icon name="more"/><span>More</span></button>
+        {showMoreMenu && <div className="more-menu" role="menu">
+          <button role="menuitem" onClick={() => { setPage('activity'); setShowMoreMenu(false) }}>Activity archive</button>
+          <button role="menuitem" onClick={() => { setPage('settings'); setShowMoreMenu(false) }}>Simulation settings</button>
+          <button role="menuitem" onClick={() => { setPage('research'); setShowMoreMenu(false) }}>Research workspace</button>
+          <div className="more-menu-divider"/>
+          <button className="danger-menu-item" role="menuitem" onClick={() => { setShowMoreMenu(false); setResetStep(1); setResetError('') }}>Reset simulation</button>
+        </div>}
+      </div>
       <div className="rail-foot"><span className="status-dot"/> Local experiment</div>
     </aside>
 
@@ -327,7 +373,7 @@ function App() {
         <aside className="right-column">
           <div className="me-row"><button className="account-link" onClick={() => navigate('profile')}><img src={data.me.avatar} alt=""/><span><b>{data.me.username}</b><small>{data.me.name}</small></span></button><button className="text-link" onClick={() => setShowEdit(true)}>Switch</button></div>
           <div className="section-heading"><span>Suggested for you</span><button className="text-link">See all</button></div>
-          {data.accounts.slice(0, 5).map((account, i) => <div className="suggest-row" key={account.id}><button className="account-link" onClick={() => openProfile(account.id)}><img src={account.avatar} alt=""/><span><b>{account.username}</b><small>{i === 0 ? 'Followed by maya + 2 more' : 'Suggested for you'}</small></span></button><button className="text-link" onClick={() => follow(account.id)}>Follow</button></div>)}
+          {data.accounts.slice(0, 5).map((account) => <div className="suggest-row" key={account.id}><button className="account-link" onClick={() => openProfile(account.id)}><img src={account.avatar} alt=""/><span><b>{account.username}</b><small>{account.followers ? `${account.followers} followers` : 'Suggested for you'}</small></span></button><button className="text-link" onClick={() => follow(account.id)}>{account.followedByMe ? 'Following' : 'Follow'}</button></div>)}
           <p className="footer-note">About · Help · Privacy · Terms<br/>© 2026 CYGNET · LOCAL SIMULATION</p>
         </aside>
       </div>}
@@ -346,14 +392,15 @@ function App() {
       {page === 'settings' && <section className="subpage settings-page"><header className="page-header"><div><p className="eyebrow">EXPERIMENT CONTROLS</p><h1>Simulation settings</h1><p className="page-intro">Changes are stored locally in SQLite. The worker pool always stays at or below 10 personas.</p></div></header><div className="settings-grid"><article className="setting-card"><h2>Simulation pace</h2><label>Activity speed<select value={settings.speedMultiplier} onChange={(e) => setSettings({ ...settings, speedMultiplier: Number(e.target.value) })}>{[0.25,0.5,1,2,4,8,12].map((speed) => <option key={speed} value={speed}>{speed}×</option>)}</select><small>Changes the delay after each generated action. Existing scheduled times are kept.</small></label><label>Concurrent persona agents<select value={settings.maxActivePersonas} onChange={(e) => setSettings({ ...settings, maxActivePersonas: Number(e.target.value) })}>{Array.from({ length: 10 }, (_, i) => i + 1).map((count) => <option key={count} value={count}>{count}</option>)}</select><small>The orchestrator runs separately.</small></label></article><article className="setting-card"><h2>Population distribution</h2><label>Profiles from the United States: {settings.usShare}%<input type="range" min="0" max="100" value={settings.usShare} onChange={(e) => setSettings({ ...settings, usShare: Number(e.target.value) })}/></label><div className="range-pair"><label>Youngest age<input type="number" min="16" max="30" value={settings.minAge} onChange={(e) => setSettings({ ...settings, minAge: Number(e.target.value) })}/></label><label>Oldest age<input type="number" min="16" max="30" value={settings.maxAge} onChange={(e) => setSettings({ ...settings, maxAge: Number(e.target.value) })}/></label></div><small>Applying this redistributes ages and countries across the 100 original AI personas, then rebuilds their system.md files. Alternate accounts are left unchanged.</small><button className="quiet-button" disabled={mocked || settings.maxAge < settings.minAge} onClick={() => void applyPopulation()}>Apply to personas</button></article><article className="setting-card setting-warning"><h2>Alternate-account scenario</h2><p>When enabled, an AI persona blocked by your human profile can create one linked alternate account and send one non-sexual message. This models block evasion in the local experiment.</p><label className="toggle-row"><input type="checkbox" checked={settings.harassmentMode} onChange={(e) => setSettings({ ...settings, harassmentMode: e.target.checked })}/> Enable block-evasion scenario</label></article></div><button className="primary-button save-settings" disabled={mocked || savingSettings || settings.maxAge < settings.minAge} onClick={() => void saveSimulationSettings()}>{savingSettings ? 'Saving…' : 'Save settings'}</button></section>}
       {page === 'research' && <ResearchPanel accounts={data.accounts} mocked={mocked} />}
 
-      {page === 'profile' && <section className="profile-page"><div className="profile-header"><img className="profile-avatar" src={currentProfile.avatar} alt=""/><div className="profile-info"><div className="profile-name-row"><h1>{currentProfile.username}</h1>{profileId === data.me.id ? <button className="quiet-button" onClick={() => setShowEdit(true)}>Edit profile</button> : <><button className="primary-button" onClick={() => follow(currentProfile.id)}>Follow</button><button className="quiet-button" onClick={() => openConversationWith(currentProfile.id)}>Message</button><button className="quiet-button" onClick={() => { void act('block.toggle', { targetId: currentProfile.id }); setToast('Block setting updated') }}>Block</button><button className="quiet-button" onClick={() => { void act('report.create', { targetType: 'account', targetId: currentProfile.id, reason: 'User report' }); setToast('Report submitted') }}>Report</button></>}</div><div className="profile-stats"><span><b>{visiblePosts.length}</b> posts</span><span><b>{profileId === data.me.id ? 248 : 1250}</b> followers</span><span><b>{profileId === data.me.id ? 301 : 412}</b> following</span></div><p><b>{currentProfile.name}</b>{currentProfile.pronouns && <span className="pronouns"> · {currentProfile.pronouns}</span>}<br/>{currentProfile.bio || 'Finding little moments worth keeping.'}</p></div></div><div className="profile-tabs"><button className="active"><Icon name="grid" size={14}/> POSTS</button>{profileId === data.me.id && <button onClick={() => openComposer()}><Icon name="plus" size={14}/> NEW POST</button>}</div><div className="profile-grid">{visiblePosts.map((post) => <button key={post.id} onClick={() => setToast(post.caption)}><img src={post.image} alt={post.caption}/><span><Icon name="heart" size={16} filled/> {post.likes} &nbsp; <Icon name="comment" size={16}/> {post.comments}</span></button>)}</div></section>}
+      {page === 'profile' && <section className="profile-page"><div className="profile-header"><img className="profile-avatar" src={currentProfile.avatar} alt=""/><div className="profile-info"><div className="profile-name-row"><h1>{currentProfile.username}</h1>{profileId === data.me.id ? <button className="quiet-button" onClick={() => setShowEdit(true)}>Edit profile</button> : <><button className="primary-button" onClick={() => void follow(currentProfile.id)}>{currentProfile.followedByMe ? 'Following' : 'Follow'}</button><button className="quiet-button" onClick={() => openConversationWith(currentProfile.id)}>Message</button><button className="quiet-button" onClick={() => { void act('block.toggle', { targetId: currentProfile.id }); setToast('Block setting updated') }}>Block</button><button className="quiet-button" onClick={() => { void act('report.create', { targetType: 'account', targetId: currentProfile.id, reason: 'User report' }); setToast('Report submitted') }}>Report</button></>}</div><div className="profile-stats"><span><b>{visiblePosts.length}</b> posts</span><span><b>{currentProfile.followers || 0}</b> followers</span><span><b>{currentProfile.following || 0}</b> following</span></div><p><b>{currentProfile.name}</b>{currentProfile.pronouns && <span className="pronouns"> · {currentProfile.pronouns}</span>}<br/>{currentProfile.bio || 'Finding little moments worth keeping.'}</p></div></div><div className="profile-tabs"><button className="active"><Icon name="grid" size={14}/> POSTS</button>{profileId === data.me.id && <button onClick={() => openComposer()}><Icon name="plus" size={14}/> NEW POST</button>}</div><div className="profile-grid">{visiblePosts.map((post) => <button key={post.id} onClick={() => setToast(post.caption)}><img src={post.image} alt={post.caption}/><span><Icon name="heart" size={16} filled/> {post.likes} &nbsp; <Icon name="comment" size={16}/> {post.comments}</span></button>)}</div></section>}
     </main>
 
-    <nav className="mobile-nav" aria-label="Mobile navigation"><NavButton icon="home" label="Home" active={page === 'home'} onClick={() => navigate('home')} compact/><NavButton icon="search" label="Explore" active={page === 'explore'} onClick={() => navigate('explore')} compact/><NavButton icon="plus" label="Create" onClick={() => openComposer()} compact/><NavButton icon="message" label="DMs" active={page === 'messages'} onClick={() => navigate('messages')} compact/><NavButton icon="explore" label="Research" active={page === 'research'} onClick={() => setPage('research')} compact/><button className="mobile-avatar" onClick={() => navigate('profile')} aria-label="My profile" aria-current={page === 'profile' && profileId === data.me.id ? 'page' : undefined}><img src={data.me.avatar} alt=""/></button></nav>
+    <nav className="mobile-nav" aria-label="Mobile navigation"><NavButton icon="home" label="Home" active={page === 'home'} onClick={() => navigate('home')} compact/><NavButton icon="search" label="Explore" active={page === 'explore'} onClick={() => navigate('explore')} compact/><NavButton icon="plus" label="Create" onClick={() => openComposer()} compact/><NavButton icon="message" label="DMs" active={page === 'messages'} onClick={() => navigate('messages')} compact/><div className="mobile-more-area"><button className="mobile-nav-button" aria-label="More" aria-haspopup="menu" aria-expanded={showMoreMenu} onClick={() => setShowMoreMenu((open) => !open)}><Icon name="more"/></button>{showMoreMenu && <div className="more-menu" role="menu"><button role="menuitem" onClick={() => { setPage('activity'); setShowMoreMenu(false) }}>Activity archive</button><button role="menuitem" onClick={() => { setPage('settings'); setShowMoreMenu(false) }}>Simulation settings</button><button role="menuitem" onClick={() => { setPage('research'); setShowMoreMenu(false) }}>Research workspace</button><div className="more-menu-divider"/><button className="danger-menu-item" role="menuitem" onClick={() => { setShowMoreMenu(false); setResetStep(1); setResetError('') }}>Reset simulation</button></div>}</div><button className="mobile-avatar" onClick={() => navigate('profile')} aria-label="My profile" aria-current={page === 'profile' && profileId === data.me.id ? 'page' : undefined}><img src={data.me.avatar} alt=""/></button></nav>
 
     {showCompose && <ComposeModal kind={composeKind} onClose={() => setShowCompose(false)} onCreate={createPost} />}
     {viewStory && <StoryModal story={viewStory} account={accountById.get(viewStory.accountId) || data.me} onClose={() => setViewStory(null)} />}
-    {showEdit && <EditModal me={data.me} onClose={() => setShowEdit(false)} onSave={(patch) => { setData((old) => ({ ...old, me: { ...old.me, ...patch } })); void act('profile.update', { patch }); setShowEdit(false); setToast('Profile updated') }} />}
+    {showEdit && <EditModal me={data.me} onClose={() => setShowEdit(false)} onSave={async (patch) => { const saved = await act('profile.update', { patch }); if (!saved) return; setData((old) => ({ ...old, me: { ...old.me, ...patch, avatar: saved.avatarUrl || old.me.avatar } })); setShowEdit(false); setToast('Profile updated') }} />}
+    {resetStep > 0 && <ResetModal step={resetStep} minutes={resetMinutes} typed={resetTypedMinutes} error={resetError} busy={resetting} onTyped={setResetTypedMinutes} onClose={() => { setResetStep(0); setResetError('') }} onContinue={() => void confirmResetStep()} onConfirm={() => void resetSimulation()} />}
     {mocked && <div className="mode-badge" role="status">Demo data</div>}
     {toast && <div className="toast" role="status">{toast}</div>}
   </div>
@@ -376,13 +423,27 @@ function ComposeModal({ kind, onClose, onCreate }: { kind: 'post' | 'story'; onC
   return <div className="modal-backdrop" onClick={onClose}><section className="compose-modal" onClick={(e) => e.stopPropagation()}><header><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button><b>Create {kind}</b><button className="text-link" disabled={!caption.trim() && !mediaData} onClick={() => onCreate(caption, kind, mediaData || undefined)}>Share</button></header><div className="compose-content">{image ? <img src={image} alt="Selected preview"/> : <div className="upload-placeholder"><span className="upload-icon"><Icon name="camera" size={30}/></span><h2>Share a little moment</h2><p>Choose an image from your device</p><label className="primary-button">Select from computer<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={async (e) => { const file = e.target.files?.[0]; if (file) { setImage(URL.createObjectURL(file)); setMediaData(await readDataUrl(file)) } }}/></label></div>}<textarea value={caption} onChange={(e) => setCaption(e.target.value)} maxLength={2200} placeholder="Write a caption..."/><span className="character-count">{caption.length}/2,200</span></div></section></div>
 }
 
-function EditModal({ me, onClose, onSave }: { me: Account; onClose: () => void; onSave: (patch: { name: string; username: string; bio: string; pronouns: string }) => void }) {
+function EditModal({ me, onClose, onSave }: { me: Account; onClose: () => void; onSave: (patch: { name: string; username: string; bio: string; pronouns: string; avatarData?: string }) => void }) {
   const [name, setName] = useState(me.name)
   const [username, setUsername] = useState(me.username)
   const [bio, setBio] = useState(me.bio || '')
   const [pronouns, setPronouns] = useState(me.pronouns || '')
+  const [avatarData, setAvatarData] = useState<string>()
   const validUsername = /^[a-z0-9._]+$/.test(username)
-  return <div className="modal-backdrop" onClick={onClose}><section className="edit-modal" onClick={(e) => e.stopPropagation()}><header><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button><b>Edit profile</b><button className="text-link" disabled={!validUsername} onClick={() => onSave({ name, username, bio, pronouns })}>Done</button></header><label>Name<input value={name} onChange={(e) => setName(e.target.value)} maxLength={80}/></label><label>Username<input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} maxLength={30}/></label>{!validUsername && <small>Use lowercase letters, numbers, dots, and underscores.</small>}<label>Pronouns<input value={pronouns} onChange={(e) => setPronouns(e.target.value)} maxLength={40}/></label><label>Bio<textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={150}/></label><small>Changes are saved locally to your profile.</small></section></div>
+  return <div className="modal-backdrop" onClick={onClose}><section className="edit-modal" onClick={(e) => e.stopPropagation()}><header><button className="icon-button" onClick={onClose} aria-label="Close"><Icon name="close"/></button><b>Edit profile</b><button className="text-link" disabled={!validUsername} onClick={() => onSave({ name, username, bio, pronouns, ...(avatarData ? { avatarData } : {}) })}>Done</button></header><label className="avatar-upload"><img src={avatarData || me.avatar} alt="Profile photo preview"/><span>Change profile photo<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={async (e) => { const file=e.target.files?.[0]; if(file) setAvatarData(await readDataUrl(file)); e.target.value='' }}/></span></label><label>Name<input value={name} onChange={(e) => setName(e.target.value)} maxLength={80}/></label><label>Username<input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} maxLength={30}/></label>{!validUsername && <small>Use lowercase letters, numbers, dots, and underscores.</small>}<label>Pronouns<input value={pronouns} onChange={(e) => setPronouns(e.target.value)} maxLength={40}/></label><label>Bio<textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={150}/></label><small>Changes are saved locally to your profile.</small></section></div>
+}
+
+function ResetModal({ step, minutes, typed, error, busy, onTyped, onClose, onContinue, onConfirm }: { step: 1 | 2; minutes: number | null; typed: string; error: string; busy: boolean; onTyped: (value: string) => void; onClose: () => void; onContinue: () => void; onConfirm: () => void }) {
+  return <div className="modal-backdrop" onClick={onClose}><section className="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" onClick={(e) => e.stopPropagation()}>
+    <h2 id="reset-title">{step === 1 ? 'Reset simulation?' : 'Are you absolutely sure?'}</h2>
+    {step === 1 ? <><p>This clears posts, follows, messages, notifications, reports, experiments, event history, and both accumulated time counters. Your profile details and photo will be kept.</p>{error && <p className="reset-error" role="alert">{error}</p>}<div className="reset-actions"><button className="quiet-button" onClick={onClose}>Cancel</button><button className="primary-button" onClick={onContinue}>Continue</button></div></> : <>
+      <p className="reset-minute-count">Total time spent on Cygnet: <strong>{minutes ?? '…'} minutes</strong></p>
+      <label>Type the number of minutes shown above to confirm<input aria-label="Confirmation minutes" inputMode="numeric" pattern="[0-9]*" value={typed} onChange={(e) => onTyped(e.target.value)} autoFocus/></label>
+      <p className="reset-warning">The simulation returns to its initial profiles and seed posts. This cannot be undone.</p>
+      {error && <p className="reset-error" role="alert">{error}</p>}
+      <div className="reset-actions"><button className="quiet-button" onClick={onClose}>Cancel</button><button className="danger-button" disabled={busy || minutes === null || typed !== String(minutes)} onClick={onConfirm}>{busy ? 'Resetting…' : 'Reset simulation'}</button></div>
+    </>}
+  </section></div>
 }
 
 function StoryModal({ story, account, onClose }: { story: Story; account: Account; onClose: () => void }) {

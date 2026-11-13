@@ -21,7 +21,7 @@ export function openStore(path = DB_PATH) {
       extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
       post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
       last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT,
-      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL,
+      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', avatar_filename TEXT, created_at TEXT NOT NULL,
       alias_of TEXT REFERENCES accounts(id), evade_due_at TEXT, retry_count INTEGER NOT NULL DEFAULT 0, retry_error TEXT
     );
     CREATE TABLE IF NOT EXISTS edges (
@@ -81,6 +81,7 @@ export function openStore(path = DB_PATH) {
     dm_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
     last_dm_at: 'TEXT', last_contact_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
     evade_due_at: 'TEXT', retry_count: 'INTEGER NOT NULL DEFAULT 0', retry_error: 'TEXT',
+    avatar_filename: 'TEXT',
   })) if (!columns.has(name)) db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${definition}`);
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings(key,value,updated_at) VALUES(?,?,?)');
   const now = new Date().toISOString();

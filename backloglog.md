@@ -2,6 +2,15 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — Profil, takip sayıları ve güvenli deney sıfırlama uygulaması
+
+- More menüsüne Activity archive, Simulation settings, Research workspace ve Reset simulation girişleri eklendi.
+- 20 yerel raster portreden AI profillerine avatar atandı; profil düzenleme penceresinden insan fotoğrafı yükleme eklendi. Var olan SQLite hesapları sonraki normal açılışta avatar migration'ı ile güncelleniyor; mevcut deney kayıtlarına dokunulmadı.
+- Profil takipçi/takip edilen sayıları `edges` tablosundan hesaplanıyor; yapay başlangıç sayıları kaldırıldı. Orkestratör, sosyal persona takipleri için insan profilini seçenek olarak değerlendiriyor.
+- Reset iki onay ve ekranda görünen birikmiş platform dakikasını tam yazma şartı istiyor; aktif simülatör tick/persona işi varken reddediliyor. Reset; seed popülasyonu, sosyal/deney geçmişi ve iki kullanım sayacını sıfırlıyor, insan profil bilgileri ve fotoğrafını koruyor.
+- Bu uygulama turunda test veya benchmark çalıştırılmadı; kullanıcı isteği uyarınca tüm doğrulama kod değişiklikleri tamamlandıktan sonra yeni goal altında yapılacak.
+- Sıradaki: yeni goal aç; mevcut `./cygnet.sh check`, gerçek Chromium E2E ve `./cygnet.sh benchmark` kapsamını yeni özellikleri de kapsayacak biçimde çalıştır, sorunları düzeltip raporla. Gerçek `server/data` üzerinde reset çalıştırma.
+
 ## 2026-11-13 — Gerçek tarayıcı ve bir saat eşdeğeri simülasyon doğrulaması
 
 - Gerçek Chromium E2E'si 14/14 kontrol grubu geçti. Test akışları profil düzenleme/görüntüleme, takip, post/story görseli, beğeni/yorum/bildirim, DM profili, medya eki/silme, rapor/CSV, kohort ve replay'i kapsıyor.

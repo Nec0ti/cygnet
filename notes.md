@@ -40,6 +40,14 @@ Instagram benzeri, web tabanlı yerel deney platformu. Hesapların tamamı AI ku
 
 Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; kalan teknik belirsizlikler MVP sırasında ölçülüp backlog'a yazılacak.
 
+## Profil ve deney reseti — 2026-11-13
+
+- AI profillerinde yerel fotoğraf avatarı bulunur; insan kendi profil fotoğrafını düzenleme ekranından yükleyebilir.
+- Takipçi ve takip edilen sayıları gerçek takip ilişkilerinden gelir. Yeni/temiz deney sıfır takip ilişkisiyle başlar; persona davranışına göre takipler zaman içinde oluşur.
+- Activity archive, Simulation settings ve Research workspace masaüstü ve mobil More menüsündedir.
+- Reset iki ayrı onay ister; son adımda gösterilen toplam platform dakikası aynen yazılmalıdır. İnsan profil bilgileri ve fotoğrafı korunur; sosyal/deney verileri, seed dışı medya ve iki süre sayacı temizlenir.
+- Bu özellikler için test/benchmark, uygulama tamamlandıktan sonra ayrı goal altında çalıştırılacak.
+
 ## 1.0 geliştirme notları — 2026-11-13
 
 - Kullanıcı MVP'yi inceledi: başlangıç feed görsellerinin SVG çizimleri gerçek fotoğraf gibi görünmedi. 1.0'da Codex imagegen ile dört yerel fotoğraf üretildi; persona postları imagegen üretmeye devam eder.

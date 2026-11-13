@@ -91,6 +91,8 @@ export class Simulator {
     this.#timer=null; this.#started=false; this.status.state='stopped';
   }
 
+  get busy() { return Boolean(this.#tickPromise); }
+
   async tick() {
     if(this.#tickPromise) return this.#tickPromise;
     this.#tickPromise=this.#runTick().finally(()=>{this.#tickPromise=null;});
@@ -116,7 +118,7 @@ export class Simulator {
     try {
       const blockedPairs=[...candidates.blocked].filter((pair)=>selected.some(({account})=>pair.startsWith(`${account.id}:`)));
       const friendsById=new Map(selected.map(({account})=>[account.id,this.db.prepare("SELECT a.id,a.username FROM edges e JOIN accounts a ON a.id=e.target_id WHERE e.source_id=? AND e.kind='friend' AND a.is_human=0 ORDER BY a.username").all(account.id).filter(({id})=>candidates.accountIds.has(id)).map(({username})=>username)]));
-      const instructions=`Assign exactly one action to every listed persona, including an explicit "wait" when appropriate. Do not omit any persona. Only use each persona's allowedActions. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. For a due DM, prefer an unblocked AI friend listed for that persona when it fits their personality; do not default to the human account for every conversation. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account,actions})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),friends:friendsById.get(account.id)||[],allowedActions:actions}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
+      const instructions=`Assign exactly one action to every listed persona, including an explicit "wait" when appropriate. Do not omit any persona. Only use each persona's allowedActions. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. For a due DM, prefer an unblocked AI friend listed for that persona when it fits their personality; do not default to the human account for every conversation. When follow is allowed, socially outgoing personas that do not already follow the human should consider following the human; quieter personas may follow AI friends instead. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account,actions})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),followsHuman:Boolean(this.db.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id='human' AND kind='follow'").get(account.id)),friends:friendsById.get(account.id)||[],allowedActions:actions}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
       const orchestrator=await this.runner.runOrchestrator({instructions,model:ORCHESTRATOR_MODEL,effort:'medium'});
       const plan=jsonValue(orchestrator.response);
       const assignments=validateActionPlan(plan,dueByPersona,{posts:candidates.postIds,accounts:candidates.accountIds,blocked:candidates.blocked});
@@ -144,8 +146,9 @@ export class Simulator {
 
   #candidates(selected) {
     const posts=this.db.prepare("SELECT id,account_id,caption FROM posts WHERE kind='post' ORDER BY created_at DESC LIMIT 30").all();
-    const accounts=this.db.prepare('SELECT id,username,age,country,is_human AS isHuman FROM accounts ORDER BY id').all();
-    const visiblePosts=posts.slice(0,16), visibleAccounts=accounts.slice(0,80);
+    const accounts=this.db.prepare('SELECT id,username,age,country,is_human AS isHuman FROM accounts WHERE id!=? ORDER BY id LIMIT 79').all('human');
+    accounts.push(this.db.prepare('SELECT id,username,age,country,is_human AS isHuman FROM accounts WHERE id=?').get('human'));
+    const visiblePosts=posts.slice(0,16), visibleAccounts=accounts;
     const accountIds=new Set(visibleAccounts.map(({id})=>id));
     const blocked=new Set(this.db.prepare("SELECT source_id,target_id FROM edges WHERE kind='block'").all().flatMap(({source_id,target_id})=>[`${source_id}:${target_id}`,`${target_id}:${source_id}`]));
     const postIds=new Set(visiblePosts.map(({id})=>id));
