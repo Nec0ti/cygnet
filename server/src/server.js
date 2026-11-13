@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction, readSettings, writeSettings, rememberPersona } from './store.js';
+import { openStore, HUMAN_ID, DATA_ROOT, logEvent, saveSystemFile, transaction, readSettings, writeSettings, rememberPersona } from './store.js';
 import { seedStore } from './seed.js';
 import { Simulator } from './simulator.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
@@ -11,12 +11,14 @@ import { connectFriends } from './friend-hook.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
-seedStore(DB);
-const MEDIA_DIR = join(HERE, '../data/media');
+seedStore(DB,{dataRoot:DATA_ROOT});
+const MEDIA_DIR = join(DATA_ROOT, 'media');
 mkdirSync(MEDIA_DIR, { recursive: true });
 const PORT = Number(process.env.CYGNET_PORT || 4179);
+const TICK_MS=Math.max(1_000,Number(process.env.CYGNET_TICK_MS)||60_000);
 const MAX_BODY = 15 * 1024 * 1024;
 const OTHER_COUNTRIES=['Canada','United Kingdom','Mexico','Brazil','India','Japan','Nigeria','Türkiye','Germany','France','Australia','South Korea','Italy','Spain','South Africa','Philippines','Indonesia','Egypt','Argentina','Sweden'];
+const ALIAS_NAME_FALLBACKS=['Taylor Reed','Jordan Brooks','Riley Carter','Casey Nguyen','Avery Bennett','Quinn Rivera','Morgan Hayes','Skyler Patel'];
 
 const accountStmt = DB.prepare('SELECT * FROM accounts WHERE id=?');
 const exists = (table, id) => DB.prepare(`SELECT 1 AS ok FROM ${table} WHERE id=?`).get(id);
@@ -311,11 +313,19 @@ export function action({ type, payload = {} }) {
         if(!readSettings(DB).harassmentMode || recipient!==HUMAN_ID || accountStmt.get(original).is_human
           || !DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='block'").get(recipient,original))
           throw Object.assign(new Error('Alternate-account contact is not enabled for this block'),{status:403});
-        const source=accountStmt.get(original), serial=DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE alias_of=?').get(original).n+1;
-        const aliasId=`alt-${id()}`, username=`${source.username}.alt${serial}`;
+        const source=accountStmt.get(original), profile=payload.profile;
+        if(!profile||typeof profile!=='object'||Array.isArray(profile)) throw Object.assign(new Error('Alternate identity is required'),{status:400});
+        const serial=DB.prepare('SELECT COUNT(*) AS n FROM accounts WHERE alias_of=?').get(original).n+1;
+        let name=requireText(profile.name,'alternate name',80);
+        if(name.toLowerCase()===source.name.toLowerCase()) name=ALIAS_NAME_FALLBACKS[(serial-1)%ALIAS_NAME_FALLBACKS.length];
+        const username=requireText(profile.username,'alternate username',30).toLowerCase();
+        const bio=requireText(profile.bio??'','alternate bio',500,true);
+        if(!/^[a-z0-9._]+$/.test(username)||DB.prepare('SELECT 1 FROM accounts WHERE username=?').get(username))
+          throw Object.assign(new Error('Alternate username must be unique and use lowercase letters, numbers, dots, or underscores'),{status:400});
+        const aliasId=`alt-${id()}`;
         const activity={postMode:'none',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'};
         DB.prepare(`INSERT INTO accounts(id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,system_md,created_at,alias_of)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(aliasId,source.name,username,source.bio,source.pronouns,source.age,source.country,0,source.tone,
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(aliasId,name,username,bio,source.pronouns,source.age,source.country,0,source.tone,
             source.traits_json,`${source.extra_notes}\nAlternate account created after block.`,JSON.stringify(activity),'',isoNow(),original);
         makeSystemMd(aliasId);
         const conversationId=id(), messageId=id(), content=requireText(payload.content,'content',4000);
@@ -392,7 +402,7 @@ const server=createServer(async (req,res)=>{
       }
       params.push(limit);
       const where=filters.length?`WHERE ${filters.join(' AND ')}`:'';
-      const events=DB.prepare(`SELECT e.*,a.username FROM events e JOIN accounts a ON a.id=e.actor_id ${where} ORDER BY e.created_at DESC LIMIT ?`).all(...params)
+      const events=DB.prepare(`SELECT e.*,a.username FROM events e JOIN accounts a ON a.id=e.actor_id ${where} ORDER BY e.created_at DESC,e.id DESC LIMIT ?`).all(...params)
         .map(({payload,...event})=>({...event,payload:JSON.parse(payload)}));
       const last=events.at(-1);
       return send(res,200,{events,nextBefore:last?`${last.created_at}|${last.id}`:null},cors);
@@ -421,6 +431,6 @@ const server=createServer(async (req,res)=>{
   }
 });
 
-const simulator=new Simulator({db:DB,applyAction:action,mediaDir:MEDIA_DIR});
+const simulator=new Simulator({db:DB,applyAction:action,mediaDir:MEDIA_DIR,dataDir:DATA_ROOT,tickMs:TICK_MS});
 server.listen(PORT,'127.0.0.1',()=>{ simulator.start(); console.log(`Cygnet API listening on http://127.0.0.1:${PORT}`); });
 for(const signal of ['SIGINT','SIGTERM']) process.on(signal,()=>{ simulator.stop(); server.close(()=>{DB.close();process.exit(0);}); });

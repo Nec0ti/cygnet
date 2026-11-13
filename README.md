@@ -43,6 +43,14 @@ The **Simulation settings** page controls activity speed, the 1–10 persona wor
 
 The repository ignores local databases, media, Codex credentials, and environment files. Back up the `server/data/` directory while the server is stopped. Treat exports and backups as potentially sensitive conversation data.
 
+For a fully isolated local copy, start the API with a separate data directory and port:
+
+```sh
+CYGNET_DATA_DIR=/tmp/cygnet-sandbox CYGNET_PORT=4180 CYGNET_TICK_MS=1000 npm start
+```
+
+`CYGNET_DATA_DIR` redirects SQLite, media, and persona prompt files together. `CYGNET_TICK_MS` is clamped to at least one second and is mainly useful for fast local simulations.
+
 ## Checks
 
 ```sh

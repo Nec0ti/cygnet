@@ -2,11 +2,11 @@
 
 ## Durum özeti
 
-- Aşama: 1.0 geliştirme
-- Son tamamlanan iş: kalıcı simülasyon ayarları, filtreli olay arşivi, persona etkileşim hafızası, üstel retry ve gerçekçi başlangıç fotoğrafları
-- Şu an yapılan iş: 1.0 değişikliklerini commit/push için hazırlama
-- Sıradaki adım: kod ve görselleri özel main'e push etmek; ardından yeni DB'de migration/ayar/arşiv/blok aşma akışını kontrol etmek
-- Yarım kalan işler: yeni DB entegrasyon kontrolü ve bir haftalık dayanıklılık ölçümü
+- Aşama: 1.0 doğrulandı; commit/push ediliyor
+- Son tamamlanan iş: eski şemadan migration, ayarlar/nüfus/arşiv API'si, retry toparlanması ve gerçek Codex blok aşma akışı izole veritabanında doğrulandı
+- Şu an yapılan iş: test raporu ve son Git senkronizasyonu
+- Sıradaki adım: 1.0 kodu/raporunu main'e push etmek; sonra bir haftalık deneyde dayanıklılık verisi toplamak
+- MVP/1.0 dışında henüz kontrol edilmeyenler: tarayıcı görsel E2E'si ve bir haftalık sürekli çalışma
 
 ## İşler
 
@@ -34,7 +34,7 @@
 - [x] Kalıcı nüfus/simülasyon ayarları, filtreli olay arşivi, exponential backoff ve 10 ajan sınırı.
 - [x] Varsayılan kapalı, tek seferlik alternatif hesap blok aşma senaryosu.
 - [x] Seed feed için imagegen fotoğrafları.
-- [ ] Uçtan uca yeni DB kontrolü ve belge/depo senkronizasyonu.
+- [x] Uçtan uca yeni DB kontrolü; test raporu ve belge/depo senkronizasyonu.
 
 ## Kayıt kuralı
 

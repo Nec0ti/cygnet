@@ -4,7 +4,8 @@ import { dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 export const HUMAN_ID = 'human';
-export const DB_PATH = process.env.CYGNET_DB || join(import.meta.dirname, '../data/cygnet.sqlite');
+export const DATA_ROOT = process.env.CYGNET_DATA_DIR || join(import.meta.dirname, '../data');
+export const DB_PATH = process.env.CYGNET_DB || join(DATA_ROOT, 'cygnet.sqlite');
 
 export function openStore(path = DB_PATH) {
   mkdirSync(dirname(path), { recursive: true });
@@ -111,7 +112,7 @@ export function logEvent(db, actorId, type, payload = {}) {
     .run(randomUUID(), actorId, type, JSON.stringify(payload), new Date().toISOString());
 }
 
-export function saveSystemFile(db, accountId, dataRoot = join(import.meta.dirname, '../data')) {
+export function saveSystemFile(db, accountId, dataRoot = DATA_ROOT) {
   const row = db.prepare('SELECT system_md FROM accounts WHERE id=?').get(accountId);
   if (!row) return;
   const dir = join(dataRoot, 'personas', accountId);

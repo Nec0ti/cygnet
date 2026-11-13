@@ -9,9 +9,13 @@
 - Simülatörün 1–10 persona sınırı ayardan okunuyor, etkinlik hızı sonraki aralıkları ölçekliyor, hatalarda exponential backoff uygulanıyor.
 - Filtrelenebilir/sayfalı olay arşivi ile nüfus dağılımını uygulama ayarları eklendi.
 - Varsayılanı kapalı blok aşma akışı: insan bir AI hesabını bloklayıp modu açtıktan sonra tek alternatif hesap ve tek cinsel olmayan DM oluşturulabiliyor.
-- UI production build'i, sunucu JS parse kontrolleri ve diff whitespace kontrolü geçti. API/DB migration, simülatör ve senaryo uçtan uca kontrolü henüz çalıştırılmadı.
-- Node sözdizimi kontrolleri, `npm run build` ve `git diff --check` geçti. 1.0 kodu ile dokümanlar commit/push için hazır.
-- Sıradaki: özel main'e push et; yeni DB entegrasyon kontrolü ve uzun süreli dayanıklılık gözlemini açık bırak.
+- Eski şema migration'ı, ayar doğrulaması (11 worker → 400), nüfus uygulaması (60 ABD, yaş 16–30), event filtre/sayfaları ve JSON export izole test DB'de geçti.
+- Canlı Codex testi iki blok olayıyla max worker=1'i doğruladı; kaynak prompt hafızası dosyaya yazıldı. Son prompt sürümü ayrı senaryoda farklı isim/kullanıcı adıyla tek, non-sexual ve eski hesabı anmayan DM üretti.
+- Olay sayfalaması testinde eşit timestamp kaynaklı tekrar bulundu ve düzeltildi; iki sayfalı tekrar kontrolü geçti.
+- Fake runner self-check'i orchestrator hatasında 15 dakika backoff ve sonraki başarılı tick'te retry state temizlenmesini doğruladı.
+- `npm run check`, engine/seed self-check'leri, JS parse kontrolleri, web production build ve `git diff --check` geçti.
+- Test DB, persona dosyaları ve medya `/tmp`'te oluşturulup silindi; gerçek `server/data` değiştirilmedi. Tarayıcı görsel E2E'si ve haftalık dayanıklılık deneyi sonraki kullanım içindir.
+- Sıradaki: test raporu ile kodu commit/push et.
 
 ## 2026-11-13 — MVP uygulaması ve doğrulama
 

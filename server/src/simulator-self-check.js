@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { dueActions, parseModelJson, validateActionPlan } from './simulator.js';
+import { dueActions, parseModelJson, validateActionPlan, retryDelayMinutes } from './simulator.js';
 
 const time='2026-11-13T00:00:00.000Z';
 const shy={activity_json:JSON.stringify({postMode:'story_only',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'}),
@@ -7,6 +7,8 @@ const shy={activity_json:JSON.stringify({postMode:'story_only',postIntervalHours
 assert.deepEqual(dueActions(shy,Date.parse(time)),['story']);
 assert.ok(dueActions({...shy,last_contact_at:time},Date.parse(time)).includes('dm'));
 assert.ok(!dueActions({...shy,last_contact_at:time,last_dm_at:time},Date.parse(time)).includes('dm'));
+assert.ok(dueActions({...shy,evade_due_at:time},Date.parse(time)).includes('evade_block'));
+assert.deepEqual([0,1,2,3,4,5,6].map(retryDelayMinutes),[15,30,60,120,240,360,360]);
 
 assert.deepEqual(parseModelJson('```json\n{"assignments":[]}\n```'),{assignments:[]});
 const due=new Map([['u0001',new Set(['like','dm'])]]);
@@ -17,4 +19,9 @@ assert.throws(()=>validateActionPlan({assignments:[{personaId:'u0001',kind:'like
   {posts:new Set(['p1']),accounts:new Set(['u0002']),blocked:new Set()}),/unknown post/);
 assert.throws(()=>validateActionPlan({assignments:[]},due,
   {posts:new Set(),accounts:new Set(),blocked:new Set()}),/assign every selected persona/);
+const evadeDue=new Map([['u0001',new Set(['evade_block'])]]);
+assert.deepEqual(validateActionPlan({assignments:[{personaId:'u0001',kind:'evade_block',targetId:'human'}]},evadeDue,
+  {posts:new Set(),accounts:new Set(),blocked:new Set()}),[{personaId:'u0001',kind:'evade_block',targetId:'human'}]);
+assert.throws(()=>validateActionPlan({assignments:[{personaId:'u0001',kind:'evade_block',targetId:'u0002'}]},evadeDue,
+  {posts:new Set(),accounts:new Set(),blocked:new Set()}),/must target the human profile/);
 console.log('Simulator self-check passed.');

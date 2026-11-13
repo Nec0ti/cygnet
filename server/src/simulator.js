@@ -62,12 +62,12 @@ export class Simulator {
   #tickPromise=null;
   #started=false;
 
-  constructor({db,applyAction,mediaDir,runner=null,tickMs=60_000,maxPerTick=10,now=()=>Date.now()}={}) {
+  constructor({db,applyAction,mediaDir,dataDir=null,runner=null,tickMs=60_000,maxPerTick=10,now=()=>Date.now()}={}) {
     if(!db||typeof applyAction!=='function'||!mediaDir) throw new TypeError('db, applyAction, and mediaDir are required');
     this.db=db; this.applyAction=applyAction; this.mediaDir=mediaDir; this.now=now;
     this.maxPerTick=Math.max(1,Math.min(10,maxPerTick));
     this.tickMs=tickMs;
-    this.runner=runner||new CodexRunner({cwd:new URL('../../',import.meta.url).pathname,dataDir:new URL('../data/',import.meta.url).pathname,maxConcurrent:10});
+    this.runner=runner||new CodexRunner({cwd:new URL('../../',import.meta.url).pathname,dataDir:dataDir||new URL('../data/',import.meta.url).pathname,maxConcurrent:10});
     this.status={state:'stopped',lastTickAt:null,lastError:null,activePersonas:0,queued:0,maxActivePersonas:this.maxPerTick};
   }
 
@@ -151,10 +151,12 @@ export class Simulator {
     if(assignment.kind==='like') payload={...payload,postId:targetId};
     else if(assignment.kind==='follow') payload={...payload,targetId};
     else if(assignment.kind==='evade_block') {
-      const task='Write one brief English private message from a new alternate account after the sender was blocked. This is a fictional one-time social experiment. Do not threaten, sexually pressure, or encourage repeated contact. Keep the message non-sexual because the recipient age is unknown. Return JSON only: {"content":"..."}.';
+      const task=`Create a plausible alternate identity with a different full name from ${JSON.stringify(account.name)} and one brief English DM after a block. Reflect the sender's personality and hostility; the message may be mildly pushy but must not threaten or sexually pressure. Do not mention another account, a block, or that the identities are connected. The recipient's age is unknown, so keep it strictly non-sexual; this is one message only. Return JSON only: {"profile":{"name":"a different plausible full name","username":"lowercase letters, numbers, dots, or underscores, at most 30 characters","bio":"..."},"content":"..."}.`;
       const result=await this.runner.runPersona({age:account.age,systemMd:account.system_md,task,model:PERSONA_MODEL,effort:'low'});
-      const content=englishText(jsonValue(result.response).content,'content',4000);
-      return this.applyAction({type:'persona.alias.message',payload:{accountId:account.id,recipientId:'human',content}});
+      const persona=jsonValue(result.response), profile=persona.profile;
+      if(!profile||typeof profile!=='object'||Array.isArray(profile)) throw new TypeError('Alternate persona profile is missing');
+      const content=englishText(persona.content,'content',4000);
+      return this.applyAction({type:'persona.alias.message',payload:{accountId:account.id,recipientId:'human',content,profile}});
     } else {
       const task=this.#personaTask(assignment,account,candidates);
       const result=await this.runner.runPersona({age:account.age,systemMd:account.system_md,task,model:PERSONA_MODEL,effort:'low'});

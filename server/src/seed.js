@@ -1,4 +1,4 @@
-import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction } from './store.js';
+import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction, DATA_ROOT } from './store.js';
 import { createInitialProfiles } from '../../seed/generate.mjs';
 import { randomUUID } from 'node:crypto';
 
@@ -91,6 +91,6 @@ export function seedStore(db, options = {}) {
 
 if(import.meta.main) {
   const db=openStore();
-  console.log(JSON.stringify(seedStore(db)));
+  console.log(JSON.stringify(seedStore(db,{dataRoot:DATA_ROOT})));
   db.close();
 }

@@ -30,6 +30,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 ## Teknik saklama kararları
 
 - SQLite veritabanı `server/data/cygnet.sqlite` altında tutulur; medya ve persona promptları aynı yerel veri alanındadır.
+- `CYGNET_DATA_DIR` veritabanı, medya ve prompt dosyalarını birlikte başka bir yerel klasöre yönlendirir; `CYGNET_TICK_MS` test/sandbox simülasyon saatini ayarlar.
 - Yerel dışa aktarma `/api/export` ile JSON olarak yapılır. Veritabanı, mesajlar, persona hafızası ve medya yedeği hassas deney verisi sayılır.
 - Seed fotoğrafları `web/public/demo-images/` altında; çalışma sırasında üretilen fotoğraflar `server/data/media/` altında tutulur.
 
