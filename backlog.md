@@ -3,8 +3,8 @@
 ## Durum özeti
 
 - Aşama: MVP geliştirme
-- Son tamamlanan iş: ürün kararları ve sürüm planı kaydedildi (2026-11-13)
-- Şu an yapılan iş: yerel uygulama iskeleti ve temel veri akışları
+- Son tamamlanan iş: ürün kararları, sürüm planı ve Codex CLI imagegen smoke check (2026-11-13)
+- Şu an yapılan iş: arayüz, sunucu ve ajan runtime'ı paralel hazırlanıyor
 - Sıradaki adım: MVP'yi uçtan uca tamamla, doğrula ve çalıştırma talimatlarını yaz
 - Yarım kalan işler: MVP uygulaması
 
@@ -18,11 +18,12 @@
 - [x] Kullanıcı fikrini ve karar bekleyen soruları `notes.md` içinde düzenle.
 - [x] `reports/` dizinini oluştur.
 - [x] Onaylanan ürün kararlarını ve sürüm planını kaydet.
+- [x] Codex CLI yerleşik `imagegen` ile bir görsel üret; dosya çıktısını kontrol et.
 
 ### Devam ediyor / bekliyor
 
 - [ ] MVP: yerel arayüz, profil/feed/story, görsel postları, DM, bildirimler, takip/beğeni/yorum ve rapor kaydı.
-- [ ] 100 profillik ağ, `system.md`, 10 etkin persona + orkestratör ve Codex CLI text/imagegen işleri.
+- [ ] 100 profillik ağ, `system.md`, 10 etkin persona + orkestratör ve Codex CLI text/imagegen işleri; imagegen dosya kopyalama entegrasyonu henüz tamamlanmadı.
 - [ ] Yerel çalıştırma, yedekleme/dışa aktarma ve deney raporu akışı.
 
 ## Kayıt kuralı

@@ -39,7 +39,8 @@
 - [x] Sürüm yol haritası
 - [ ] Özel GitHub deposu ve başlangıç commit'i
 - [ ] MVP uygulaması
-- [ ] Codex CLI text/imagegen iş akışını gerçek oturumda doğrulama
+- [x] Codex CLI yerleşik `imagegen` ile bir deneme görseli üretme ve görseli kontrol etme
+- [ ] Codex CLI text/imagegen iş akışını Cygnet uygulamasına bağlama; görsel dosyası yerel medya klasörüne taşınmalı
 - [ ] Uçtan uca yerel kullanım ve veri dışa aktarma
 - [ ] Deney raporu
 
