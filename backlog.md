@@ -2,12 +2,12 @@
 
 ## Durum özeti
 
-- Aşama: gerçek Chromium E2E, Codex AI simülasyonu ve son doğrulama `0cc2b50` ile private `main`e gönderildi
-- Son tamamlanan iş: Chromium 14/14; bir saat eşdeğerinde orkestratör + üç persona, AI–AI DM ve imagegen postu
-- Şu an yapılan iş: doğrulama tamamlandı; yedi günlük deney başlamadı
+- Aşama: profil fotoğrafı, gerçek takip sayısı, More menüsü ve reset doğrulaması `698bcf0` sonrası tamamlandı
+- Son tamamlanan iş: `./cygnet.sh check` geçti; gerçek Chromium E2E 17/17; iki benchmark veri seti de correctness 5/5
+- Şu an yapılan iş: test ve benchmark raporlandı; yedi günlük deney başlamadı
 - Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
-- Benchmark sınırı: 1.000 profil/100.000 event raporu tek istekte p95 4,75 sn, 10 eşzamanlı rapor isteğinde p95 23,97 sn; ayrıntı `reports/benchmark-2026-11-13T19-02.md` içinde
+- Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 44,01 sn; server RSS 718,8 MB. Ayrıntı `reports/benchmark-2026-11-13T19-59.md` içinde
 
 ## İşler
 
@@ -35,6 +35,7 @@
 - [x] Gerçek Chromium E2E akışlarını çalıştır; bulunan story başlangıcı ve DM silme hatalarını düzelt (`scripts/browser-e2e.mjs`).
 - [x] Gerçek Codex ile 12× hızda bir saat eşdeğeri simülasyon yap; orkestratör atama istemini ve arkadaş grafiği bağlamını düzelt, üç persona sınırı/AI–AI DM/imagegen postunu doğrula.
 - [x] 1.000 profil benchmark'ını yenile ve test sonuç raporunu yaz (`reports/2026-11-13-browser-simulation-verification.md`).
+- [x] Avatar fotoğrafı, More menüsü, gerçek takip sayıları ve çift onaylı reseti ekle; `./cygnet.sh check`, 17 akışlı gerçek Chromium E2E ve 100/1.000 profil benchmark'ı tamamla (`reports/2026-11-13-profile-reset-verification.md`).
 
 ### Cygnet 1.0
 

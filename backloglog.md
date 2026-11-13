@@ -2,6 +2,16 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — Profil ve reset özelliklerinin test/benchmark doğrulaması
+
+- `./cygnet.sh check` geçti: server self-check ve HTTP integration, simulator/runner/seed, usage tracker lifecycle, web TypeScript+production build ve launcher lifecycle.
+- Gerçek Chromium 156 E2E 17/17 geçti. Yeni akışlar; ilk profil sayılarının sıfır ve avatar görsellerinin HTTP 200 olması, insanın fotoğraf yüklemesi, takipten sonra iki taraflı sayaçların artması, masaüstü/mobil More menüsü ve resetin dakika yazma şartı ile insan profilini koruyup seed veriye dönmesi.
+- `./cygnet.sh benchmark` 100 profil/10.000 event ve 1.000 profil/100.000 event için 5/5 correctness, 0 HTTP hatası verdi. Bootstrap toplu takip sayımı ile düzenlendi; 1.000 profil concurrency 10 bootstrap p95 bu koşuda 2,63 sn oldu.
+- 1.000 profil rapor endpoint'i concurrency 10'da p95 44,01 sn ve ortalama 15,27 MB JSON döndürdü; server RSS 718,8 MB. Bu ağır sentetik rapor yükünde performans sınırı mevcut; tek istek p95 4,00 sn. Ayrıntı `reports/benchmark-2026-11-13T19-59.md` ve `.json` içinde.
+- Bir ilk build denemesi reset modalındaki TypeScript union daraltma hatasını buldu; düzeltildi. İlk E2E reset sayacı kontrolü canlı saatin sıfırlamadan hemen sonra yeniden ilerlemesini yanlışlıkla hata sayıyordu; beklenti resetten sonraki ilk saniye olarak ayarlandı ve tüm Chromium akışı tekrar geçti.
+- Bütün test ve benchmark verileri geçici dizinlerdeydi; `server/data` üzerinde reset/temizleme yapılmadı. Gerçek Codex ile yeni bir saatlik simülasyon ve yedi günlük deney bu turda çalıştırılmadı.
+- Sıradaki: yedi günlük yerel deneyi kullanıcı başlatsın; platform sayacı yedi birikimli güne erişince durdurup raporla.
+
 ## 2026-11-13 — Profil, takip sayıları ve güvenli deney sıfırlama uygulaması
 
 - More menüsüne Activity archive, Simulation settings, Research workspace ve Reset simulation girişleri eklendi.

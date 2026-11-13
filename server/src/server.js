@@ -36,7 +36,7 @@ const exists = (table, id) => DB.prepare(`SELECT 1 AS ok FROM ${table} WHERE id=
 const isoNow = () => new Date().toISOString();
 const id = () => randomUUID();
 
-function accountView(row) {
+function accountView(row, counts = null) {
   if (!row) return null;
   const account = {
     id: row.id, name: row.name, username: row.username, bio: row.bio,
@@ -44,8 +44,8 @@ function accountView(row) {
     isHuman: Boolean(row.is_human), tone: row.tone,
     traits: JSON.parse(row.traits_json || '{}'),
     avatarUrl: row.avatar_filename ? `/media/${encodeURIComponent(row.avatar_filename)}` : null,
-    followers: DB.prepare("SELECT count(*) AS n FROM edges WHERE target_id=? AND kind='follow'").get(row.id).n,
-    following: DB.prepare("SELECT count(*) AS n FROM edges WHERE source_id=? AND kind='follow'").get(row.id).n,
+    followers: counts ? counts.followers.get(row.id) || 0 : DB.prepare("SELECT count(*) AS n FROM edges WHERE target_id=? AND kind='follow'").get(row.id).n,
+    following: counts ? counts.following.get(row.id) || 0 : DB.prepare("SELECT count(*) AS n FROM edges WHERE source_id=? AND kind='follow'").get(row.id).n,
   };
   if (!account.isHuman) {
     account.systemMd = row.system_md;
@@ -71,9 +71,13 @@ function postView(row) {
 }
 
 function bootstrap() {
-  const me = accountView(accountStmt.get(HUMAN_ID));
+  const counts={
+    followers:new Map(DB.prepare("SELECT target_id,COUNT(*) AS n FROM edges WHERE kind='follow' GROUP BY target_id").all().map(({target_id,n})=>[target_id,n])),
+    following:new Map(DB.prepare("SELECT source_id,COUNT(*) AS n FROM edges WHERE kind='follow' GROUP BY source_id").all().map(({source_id,n})=>[source_id,n])),
+  };
+  const me = accountView(accountStmt.get(HUMAN_ID),counts);
   const accounts = DB.prepare(`SELECT * FROM accounts WHERE id != ? ORDER BY username`).all(HUMAN_ID)
-    .map((row) => ({ ...accountView(row),
+    .map((row) => ({ ...accountView(row,counts),
       followsMe: Boolean(DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='follow'").get(row.id, HUMAN_ID)),
       followedByMe: Boolean(DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='follow'").get(HUMAN_ID, row.id)),
       blockedByMe: Boolean(DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='block'").get(HUMAN_ID, row.id)),

@@ -93,6 +93,11 @@ try {
   check('real Chromium loads the API-backed home feed');
 
   const initial = (await apiJson('/api/bootstrap')).value;
+  assert.equal(initial.me.followers, 0);
+  assert.equal(initial.me.following, 0);
+  assert.ok(initial.accounts.every((account) => account.avatarUrl && account.followers === 0 && account.following === 0));
+  for (const account of initial.accounts) assert.equal((await fetch(`${apiUrl}${account.avatarUrl}`)).status, 200);
+  check('fresh profiles have real zero follow counts and working raster avatars');
   const aiPost = initial.posts.find((post) => post.accountId !== 'human');
   const feedPost = page.locator('.post-card').first();
   const likesBefore = Number((await feedPost.locator('.post-body b').first().innerText()).replaceAll(',', '').split(' ')[0]);
@@ -133,13 +138,16 @@ try {
   await page.getByRole('button', { name: 'Profile' }).click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
   const edit = page.locator('.edit-modal');
+  await edit.locator('input[type=file]').setInputFiles(pngPath);
+  await edit.locator('.avatar-upload img').waitFor();
   await edit.getByLabel('Name', { exact: true }).fill('Chromium Test Human');
   await edit.getByLabel('Username', { exact: true }).fill('chromium_test');
   await edit.getByLabel('Pronouns', { exact: true }).fill('they/them');
   await edit.getByLabel('Bio', { exact: true }).fill('Edited through Chromium.');
   await edit.getByRole('button', { name: 'Done' }).click();
-  await waitFor(async () => (await apiJson('/api/bootstrap')).value.me.username === 'chromium_test', 'profile update persisted');
-  check('own profile edit fields save through the UI');
+  const updatedHuman = await waitFor(async () => { const me = (await apiJson('/api/bootstrap')).value.me; return me.username === 'chromium_test' && me.avatarUrl ? me : null; }, 'profile and avatar update persisted');
+  assert.equal((await fetch(`${apiUrl}${updatedHuman.avatarUrl}`)).status, 200);
+  check('own profile fields and uploaded avatar save through the UI');
 
   const target = initial.accounts[0];
   await page.getByRole('button', { name: 'Explore people' }).click();
@@ -150,6 +158,7 @@ try {
   assert.equal(await page.getByRole('button', { name: /NEW POST/ }).count(), 0);
   await page.getByRole('button', { name: 'Follow' }).click();
   await waitFor(async () => (await apiJson('/api/export')).value.edges.some((edge) => edge.source_id === 'human' && edge.target_id === target.id && edge.kind === 'follow'), 'follow persisted');
+  await waitFor(async () => { const profile = (await apiJson('/api/bootstrap')).value; return profile.me.following === 1 && profile.accounts.find((account) => account.id === target.id)?.followers === 1; }, 'follow counts reflect relationship');
   check('other profile is read-only and follow works');
 
   await page.getByRole('button', { name: 'Block' }).click();
@@ -199,21 +208,24 @@ try {
   await waitFor(async () => (await apiJson('/api/bootstrap')).value.notifications.every((item) => item.isRead), 'notifications marked read');
   check('follow, like, comment/reply notifications render and mark read');
 
-  await page.getByRole('button', { name: 'Activity archive' }).click();
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Activity archive' }).click();
   const eventFilter = page.getByPlaceholder('e.g. message.sent');
   await eventFilter.fill('message.sent');
   await page.locator('.event-row').first().waitFor();
   assert.match(await page.locator('.event-row').first().innerText(), /message\.sent/);
   check('activity archive filters persisted events');
 
-  await page.getByRole('button', { name: 'Simulation settings' }).click();
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Simulation settings' }).click();
   await page.getByLabel('Activity speed').selectOption('12');
   await page.getByLabel('Concurrent persona agents').selectOption('3');
   await page.getByRole('button', { name: 'Save settings' }).click();
   await waitFor(async () => { const value = (await apiJson('/api/settings')).value; return value.speedMultiplier === 12 && value.maxActivePersonas === 3; }, 'simulation settings saved');
   check('browser simulation settings set 12x speed and a three-persona limit');
 
-  await page.getByRole('button', { name: 'Research workspace' }).click();
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Research workspace' }).click();
   await page.getByRole('button', { name: 'Build report' }).click();
   await page.getByRole('heading', { name: 'Daily activity' }).waitFor();
   const csvHref = await page.getByRole('link', { name: 'Download CSV' }).getAttribute('href');
@@ -239,6 +251,46 @@ try {
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   assert.equal((await apiJson('/api/export')).value.events.length, eventCountBeforeReplay, 'replay must not repeat actions');
   check('research report/CSV, cohort start/end/compare, and read-only event replay work');
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Activity archive' }).click();
+  await page.getByRole('heading', { name: 'Activity archive' }).waitFor();
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Research workspace' }).click();
+  await page.getByRole('heading', { name: 'Research workspace' }).waitFor();
+  check('mobile More menu reaches archive and research pages');
+
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Reset simulation' }).click();
+  const reset = page.getByRole('dialog', { name: 'Reset simulation?' });
+  await reset.getByRole('button', { name: 'Cancel' }).click();
+  assert.equal(await page.locator('.reset-modal').count(), 0, 'first confirmation can cancel without changes');
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Reset simulation' }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const secondReset = page.getByRole('dialog', { name: 'Are you absolutely sure?' });
+  const minutesText = await secondReset.locator('.reset-minute-count strong').innerText();
+  assert.match(minutesText, /^\d+ minutes$/);
+  const resetMinutes = minutesText.match(/\d+/)[0];
+  const confirmReset = secondReset.getByRole('button', { name: 'Reset simulation' });
+  assert.equal(await confirmReset.isDisabled(), true);
+  await secondReset.getByLabel('Confirmation minutes').fill(`${resetMinutes}1`);
+  assert.equal(await confirmReset.isDisabled(), true);
+  await secondReset.getByLabel('Confirmation minutes').fill(resetMinutes);
+  await confirmReset.click();
+  await page.getByRole('heading', { name: 'Home' }).waitFor();
+  const afterReset = (await apiJson('/api/bootstrap')).value;
+  assert.equal(afterReset.me.username, 'chromium_test');
+  assert.equal(afterReset.me.followers, 0);
+  assert.equal(afterReset.me.following, 0);
+  assert.ok(afterReset.me.avatarUrl);
+  assert.equal(afterReset.accounts.length, 100);
+  assert.equal(afterReset.posts.length, 28);
+  assert.equal(afterReset.conversations.length, 0);
+  assert.equal((await apiJson('/api/settings')).value.speedMultiplier, 1);
+  assert.ok((await apiJson('/api/usage')).value.platformMs < 1_000, 'the reset platform clock starts near zero and resumes immediately');
+  check('two-step reset requires displayed minutes, preserves human profile, and restores seed data/counters');
 
   assert.deepEqual(pageErrors, [], `uncaught browser errors: ${pageErrors.join('; ')}`);
   await page.screenshot({ path: join(temp, 'browser-e2e-final.png'), fullPage: true });

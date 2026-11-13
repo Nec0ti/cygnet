@@ -400,7 +400,7 @@ function App() {
     {showCompose && <ComposeModal kind={composeKind} onClose={() => setShowCompose(false)} onCreate={createPost} />}
     {viewStory && <StoryModal story={viewStory} account={accountById.get(viewStory.accountId) || data.me} onClose={() => setViewStory(null)} />}
     {showEdit && <EditModal me={data.me} onClose={() => setShowEdit(false)} onSave={async (patch) => { const saved = await act('profile.update', { patch }); if (!saved) return; setData((old) => ({ ...old, me: { ...old.me, ...patch, avatar: saved.avatarUrl || old.me.avatar } })); setShowEdit(false); setToast('Profile updated') }} />}
-    {resetStep > 0 && <ResetModal step={resetStep} minutes={resetMinutes} typed={resetTypedMinutes} error={resetError} busy={resetting} onTyped={setResetTypedMinutes} onClose={() => { setResetStep(0); setResetError('') }} onContinue={() => void confirmResetStep()} onConfirm={() => void resetSimulation()} />}
+    {resetStep !== 0 && <ResetModal step={resetStep} minutes={resetMinutes} typed={resetTypedMinutes} error={resetError} busy={resetting} onTyped={setResetTypedMinutes} onClose={() => { setResetStep(0); setResetError('') }} onContinue={() => void confirmResetStep()} onConfirm={() => void resetSimulation()} />}
     {mocked && <div className="mode-badge" role="status">Demo data</div>}
     {toast && <div className="toast" role="status">{toast}</div>}
   </div>
