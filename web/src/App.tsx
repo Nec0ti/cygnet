@@ -135,7 +135,7 @@ function App() {
   const [data, setData] = useState(seed)
   const [mocked, setMocked] = useState(import.meta.env.VITE_USE_MOCK === 'true')
   const [page, setPage] = useState<Page>('home')
-  const [profileId, setProfileId] = useState('me')
+  const [profileId, setProfileId] = useState(seed.me.id)
   const [activeConversation, setActiveConversation] = useState('c1')
   const [newRecipientId, setNewRecipientId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -148,7 +148,7 @@ function App() {
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
-  useEffect(() => { void getJSON().then(({ data: nextData, mocked: isMocked }) => { setData(nextData); setActiveConversation(nextData.conversations[0]?.id || ''); setMocked(isMocked) }) }, [])
+  useEffect(() => { void getJSON().then(({ data: nextData, mocked: isMocked }) => { setData(nextData); setProfileId(nextData.me.id); setActiveConversation(nextData.conversations[0]?.id || ''); setMocked(isMocked) }) }, [])
   useEffect(() => { if (!toast) return; const id = window.setTimeout(() => setToast(''), 2200); return () => window.clearTimeout(id) }, [toast])
 
   const accountById = useMemo(() => new Map([[data.me.id, data.me], ...data.accounts.map((account) => [account.id, account] as const)]), [data])
@@ -164,7 +164,7 @@ function App() {
       return result.result
     } catch { return null }
   }
-  function navigate(target: Page) { setPage(target); if (target === 'profile') setProfileId('me') }
+  function navigate(target: Page) { setPage(target); if (target === 'profile') setProfileId(data.me.id) }
   function openProfile(id: string) { setProfileId(id); setPage('profile') }
   function openConversationWith(accountId: string) {
     const existing = data.conversations.find((item) => item.accountId === accountId)
@@ -224,7 +224,7 @@ function App() {
         <NavButton icon="message" label="Messages" active={page === 'messages'} badge="1" onClick={() => navigate('messages')} />
         <NavButton icon="heart" label="Notifications" active={page === 'notifications'} onClick={() => navigate('notifications')} />
         <NavButton icon="plus" label="Create" onClick={() => openComposer()} />
-        <button className={`nav-button ${page === 'profile' && profileId === 'me' ? 'active' : ''}`} onClick={() => navigate('profile')}><img className="nav-avatar" src={data.me.avatar} alt=""/><span>Profile</span></button>
+        <button className={`nav-button ${page === 'profile' && profileId === data.me.id ? 'active' : ''}`} onClick={() => navigate('profile')}><img className="nav-avatar" src={data.me.avatar} alt=""/><span>Profile</span></button>
       </nav>
       <button className="more-button"><Icon name="more"/><span>More</span></button>
       <div className="rail-foot"><span className="status-dot"/> Local experiment</div>
@@ -237,9 +237,9 @@ function App() {
           <div className="stories-card">
             {data.stories.map((story) => {
               const account = accountById.get(story.accountId) || data.me
-              return <button className="story" key={story.id} onClick={() => story.accountId === 'me' && !story.image ? openComposer('story') : setViewStory(story)}>
+              return <button className="story" key={story.id} onClick={() => story.accountId === data.me.id && !story.image ? openComposer('story') : setViewStory(story)}>
                 <span className={`story-ring ${story.seen ? 'seen' : ''}`}><img src={account.avatar} alt="" /></span>
-                <span>{story.accountId === 'me' ? 'Your story' : account.username}</span>
+                <span>{story.accountId === data.me.id ? 'Your story' : account.username}</span>
               </button>
             })}
           </div>
@@ -262,7 +262,7 @@ function App() {
 
       {page === 'notifications' && <section className="subpage notifications-page"><header className="page-header"><div><p className="eyebrow">YOUR ACTIVITY</p><h1>Notifications</h1></div><button className="quiet-button" onClick={markAllRead}>Mark all as read</button></header><h3 className="group-title">Today</h3>{data.notifications.map((item) => { const person = accountById.get(item.accountId) || data.me; return <div className={`notification-row ${item.isRead ? 'read' : ''}`} key={item.id}><button onClick={() => { readNotification(item.id); openProfile(person.id) }}><img src={person.avatar} alt=""/></button><p><b>{person.username}</b> {item.text} <span>{item.time}</span></p>{item.postImage && <img className="notification-thumb" src={item.postImage} alt="Post thumbnail"/>}{item.kind === 'follow' && <button className="follow-button" onClick={() => follow(person.id)}>Follow</button>}</div> })}</section>}
 
-      {page === 'profile' && <section className="profile-page"><div className="profile-header"><img className="profile-avatar" src={currentProfile.avatar} alt=""/><div className="profile-info"><div className="profile-name-row"><h1>{currentProfile.username}</h1>{profileId === 'me' ? <button className="quiet-button" onClick={() => setShowEdit(true)}>Edit profile</button> : <><button className="primary-button" onClick={() => follow(currentProfile.id)}>Follow</button><button className="quiet-button" onClick={() => openConversationWith(currentProfile.id)}>Message</button><button className="quiet-button" onClick={() => { void act('block.toggle', { targetId: currentProfile.id }); setToast('Block setting updated') }}>Block</button><button className="quiet-button" onClick={() => { void act('report.create', { targetType: 'account', targetId: currentProfile.id, reason: 'User report' }); setToast('Report submitted') }}>Report</button></>}</div><div className="profile-stats"><span><b>{visiblePosts.length}</b> posts</span><span><b>{profileId === 'me' ? 248 : 1250}</b> followers</span><span><b>{profileId === 'me' ? 301 : 412}</b> following</span></div><p><b>{currentProfile.name}</b>{currentProfile.pronouns && <span className="pronouns"> · {currentProfile.pronouns}</span>}<br/>{currentProfile.bio || 'Finding little moments worth keeping.'}</p></div></div><div className="profile-tabs"><button className="active"><Icon name="grid" size={14}/> POSTS</button>{profileId === 'me' && <button onClick={() => openComposer()}><Icon name="plus" size={14}/> NEW POST</button>}</div><div className="profile-grid">{visiblePosts.map((post) => <button key={post.id} onClick={() => setToast(post.caption)}><img src={post.image} alt={post.caption}/><span><Icon name="heart" size={16} filled/> {post.likes} &nbsp; <Icon name="comment" size={16}/> {post.comments}</span></button>)}</div></section>}
+      {page === 'profile' && <section className="profile-page"><div className="profile-header"><img className="profile-avatar" src={currentProfile.avatar} alt=""/><div className="profile-info"><div className="profile-name-row"><h1>{currentProfile.username}</h1>{profileId === data.me.id ? <button className="quiet-button" onClick={() => setShowEdit(true)}>Edit profile</button> : <><button className="primary-button" onClick={() => follow(currentProfile.id)}>Follow</button><button className="quiet-button" onClick={() => openConversationWith(currentProfile.id)}>Message</button><button className="quiet-button" onClick={() => { void act('block.toggle', { targetId: currentProfile.id }); setToast('Block setting updated') }}>Block</button><button className="quiet-button" onClick={() => { void act('report.create', { targetType: 'account', targetId: currentProfile.id, reason: 'User report' }); setToast('Report submitted') }}>Report</button></>}</div><div className="profile-stats"><span><b>{visiblePosts.length}</b> posts</span><span><b>{profileId === data.me.id ? 248 : 1250}</b> followers</span><span><b>{profileId === data.me.id ? 301 : 412}</b> following</span></div><p><b>{currentProfile.name}</b>{currentProfile.pronouns && <span className="pronouns"> · {currentProfile.pronouns}</span>}<br/>{currentProfile.bio || 'Finding little moments worth keeping.'}</p></div></div><div className="profile-tabs"><button className="active"><Icon name="grid" size={14}/> POSTS</button>{profileId === data.me.id && <button onClick={() => openComposer()}><Icon name="plus" size={14}/> NEW POST</button>}</div><div className="profile-grid">{visiblePosts.map((post) => <button key={post.id} onClick={() => setToast(post.caption)}><img src={post.image} alt={post.caption}/><span><Icon name="heart" size={16} filled/> {post.likes} &nbsp; <Icon name="comment" size={16}/> {post.comments}</span></button>)}</div></section>}
     </main>
 
     <nav className="mobile-nav" aria-label="Mobile navigation"><NavButton icon="home" label="Home" active={page === 'home'} onClick={() => navigate('home')} compact/><NavButton icon="search" label="Explore" active={page === 'explore'} onClick={() => navigate('explore')} compact/><NavButton icon="plus" label="Create" onClick={() => openComposer()} compact/><NavButton icon="message" label="DMs" active={page === 'messages'} onClick={() => navigate('messages')} compact/><button className="mobile-avatar" onClick={() => navigate('profile')}><img src={data.me.avatar} alt="My profile"/></button></nav>
