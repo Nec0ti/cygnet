@@ -120,19 +120,20 @@ function readDataUrl(file: File) {
   })
 }
 
-const getJSON = async (): Promise<Bootstrap> => {
-  if (import.meta.env.VITE_USE_MOCK === 'true') return seed
+const getJSON = async (): Promise<{ data: Bootstrap; mocked: boolean }> => {
+  if (import.meta.env.VITE_USE_MOCK === 'true') return { data: seed, mocked: true }
   try {
     const response = await fetch('/api/bootstrap')
     if (!response.ok) throw new Error(`API ${response.status}`)
-    return fromAPI(await response.json())
+    return { data: fromAPI(await response.json()), mocked: false }
   } catch {
-    return seed
+    return { data: seed, mocked: true }
   }
 }
 
 function App() {
   const [data, setData] = useState(seed)
+  const [mocked, setMocked] = useState(import.meta.env.VITE_USE_MOCK === 'true')
   const [page, setPage] = useState<Page>('home')
   const [profileId, setProfileId] = useState('me')
   const [activeConversation, setActiveConversation] = useState('c1')
@@ -146,7 +147,7 @@ function App() {
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
-  useEffect(() => { void getJSON().then(setData) }, [])
+  useEffect(() => { void getJSON().then(({ data: nextData, mocked: isMocked }) => { setData(nextData); setMocked(isMocked) }) }, [])
   useEffect(() => { if (!toast) return; const id = window.setTimeout(() => setToast(''), 2200); return () => window.clearTimeout(id) }, [toast])
 
   const accountById = useMemo(() => new Map([[data.me.id, data.me], ...data.accounts.map((account) => [account.id, account] as const)]), [data])
@@ -246,6 +247,7 @@ function App() {
     {showCompose && <ComposeModal kind={composeKind} onClose={() => setShowCompose(false)} onCreate={createPost} />}
     {viewStory && <StoryModal story={viewStory} account={accountById.get(viewStory.accountId) || data.me} onClose={() => setViewStory(null)} />}
     {showEdit && <EditModal me={data.me} onClose={() => setShowEdit(false)} onSave={(name, bio) => { setData((old) => ({ ...old, me: { ...old.me, name, bio } })); void act('profile.update', { patch: { name, bio } }); setShowEdit(false); setToast('Profile updated') }} />}
+    {mocked && <div className="mode-badge" role="status">Demo data</div>}
     {toast && <div className="toast" role="status">{toast}</div>}
   </div>
 }
