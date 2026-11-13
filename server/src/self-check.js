@@ -14,6 +14,17 @@ try {
   assert.deepEqual(result,{seeded:true,accounts:101});
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND country='United States'").get().n,60);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND age BETWEEN 16 AND 30').get().n,100);
+  const personas=db.prepare('SELECT id,name,age,country,pronouns,tone,traits_json,system_md FROM accounts WHERE is_human=0').all();
+  assert.ok(personas.some((profile)=>profile.age<18));
+  for(const profile of personas) {
+    assert.ok(profile.system_md.includes(`- Name: ${profile.name}`));
+    assert.ok(profile.system_md.includes(`- Age: ${profile.age}`));
+    assert.ok(profile.system_md.includes(`- Country: ${profile.country}`));
+    assert.ok(profile.system_md.includes(`- Pronouns: ${profile.pronouns}`));
+    assert.ok(profile.system_md.includes(profile.tone));
+    for(const trait of Object.keys(JSON.parse(profile.traits_json))) assert.ok(profile.system_md.includes(`- ${trait}:`));
+    if(profile.age<18) assert.match(profile.system_md,/under 18[\s\S]*do not engage in sexual or erotic conversation/i);
+  }
   const persona=db.prepare("SELECT id,system_md FROM accounts WHERE is_human=0 LIMIT 1").get();
   assert.match(persona.system_md,/## Friends\n- \[\[/);
   assert.equal(readFileSync(join(temp,'personas',persona.id,'system.md'),'utf8'),persona.system_md);

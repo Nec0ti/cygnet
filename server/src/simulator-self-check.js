@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { dueActions, parseModelJson, validateActionPlan, retryDelayMinutes } from './simulator.js';
+import { dueActions, parseModelJson, validateActionPlan, retryDelayMinutes, dmSafetyBoundary } from './simulator.js';
 
 const time='2026-11-13T00:00:00.000Z';
 const shy={activity_json:JSON.stringify({postMode:'story_only',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'}),
@@ -9,6 +9,9 @@ assert.ok(dueActions({...shy,last_contact_at:time},Date.parse(time)).includes('d
 assert.ok(!dueActions({...shy,last_contact_at:time,last_dm_at:time},Date.parse(time)).includes('dm'));
 assert.ok(dueActions({...shy,evade_due_at:time},Date.parse(time)).includes('evade_block'));
 assert.deepEqual([0,1,2,3,4,5,6].map(retryDelayMinutes),[15,30,60,120,240,360,360]);
+assert.match(dmSafetyBoundary(22,19),/Mild, non-graphic adult flirtation/);
+assert.match(dmSafetyBoundary(17,19),/strictly non-sexual/);
+assert.match(dmSafetyBoundary(19,null),/age is unknown/);
 
 assert.deepEqual(parseModelJson('```json\n{"assignments":[]}\n```'),{assignments:[]});
 const due=new Map([['u0001',new Set(['like','dm'])]]);

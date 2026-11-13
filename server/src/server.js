@@ -9,9 +9,11 @@ import { Simulator } from './simulator.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
 import { connectFriends } from './friend-hook.js';
 import { buildReport, reportCsv } from './report.js';
+import { compareExperiment, createExperiment, ensureExperimentSchema, finishExperiment, listExperiments, replayEvents } from './experiments.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
+ensureExperimentSchema(DB);
 seedStore(DB,{dataRoot:DATA_ROOT});
 const MEDIA_DIR = join(DATA_ROOT, 'media');
 mkdirSync(MEDIA_DIR, { recursive: true });
@@ -373,6 +375,9 @@ const server=createServer(async (req,res)=>{
         ||typeof next.harassmentMode!=='boolean'||!Number.isInteger(next.usShare)||next.usShare<0||next.usShare>100
         ||!Number.isInteger(next.minAge)||!Number.isInteger(next.maxAge)||next.minAge<16||next.maxAge>30||next.maxAge<next.minAge)
         throw Object.assign(new Error('Settings are outside supported ranges'),{status:400});
+      const activeExperiment=listExperiments(DB).some((experiment)=>!experiment.finishedAt);
+      if(activeExperiment&&Object.keys(patch).some((key)=>JSON.stringify(current[key])!==JSON.stringify(patch[key])))
+        throw Object.assign(new Error('Finish the active experiment before changing simulation settings'),{status:409});
       const saved=writeSettings(DB,patch);
       if(patch.harassmentMode===true && current.harassmentMode===false) {
         DB.prepare(`UPDATE accounts SET evade_due_at=? WHERE id IN
@@ -382,6 +387,7 @@ const server=createServer(async (req,res)=>{
       return send(res,200,{settings:saved},cors);
     }
     if(req.method==='POST' && url.pathname==='/api/settings/apply-population') {
+      if(listExperiments(DB).some((experiment)=>!experiment.finishedAt)) throw Object.assign(new Error('Finish the active experiment before changing population'),{status:409});
       const settings=readSettings(DB), people=DB.prepare('SELECT id FROM accounts WHERE is_human=0 AND alias_of IS NULL ORDER BY id').all();
       const origins=[...Array(Math.round(people.length*settings.usShare/100)).fill('United States'),...Array.from({length:people.length-Math.round(people.length*settings.usShare/100)},()=>OTHER_COUNTRIES[Math.floor(Math.random()*OTHER_COUNTRIES.length)])];
       for(let i=origins.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[origins[i],origins[j]]=[origins[j],origins[i]];}
@@ -400,6 +406,35 @@ const server=createServer(async (req,res)=>{
         return res.end(body);
       }
       return send(res,200,report,cors);
+    }
+    if(req.method==='GET' && url.pathname==='/api/experiments') return send(res,200,{experiments:listExperiments(DB)},cors);
+    if(req.method==='POST' && url.pathname==='/api/experiments') {
+      const body=await parseBody(req);
+      if(!body||typeof body!=='object'||Array.isArray(body)) throw Object.assign(new Error('Experiment details are required'),{status:400});
+      if(listExperiments(DB).some((experiment)=>!experiment.finishedAt)) throw Object.assign(new Error('Finish the active experiment before starting another'),{status:409});
+      let experiment;
+      try { experiment=createExperiment(DB,body); }
+      catch(error) { if(error instanceof TypeError) error.status=400; throw error; }
+      logEvent(DB,HUMAN_ID,'experiment.started',{experimentId:experiment.id,label:experiment.label,cohorts:{a:experiment.cohorts.a.accountIds.length,b:experiment.cohorts.b.accountIds.length}});
+      return send(res,201,{experiment},cors);
+    }
+    if(req.method==='POST' && url.pathname.startsWith('/api/experiments/') && url.pathname.endsWith('/finish')) {
+      const id=decodeURIComponent(url.pathname.slice('/api/experiments/'.length,-'/finish'.length));
+      let experiment;
+      try { experiment=finishExperiment(DB,id); }
+      catch(error) { if(error instanceof TypeError) error.status=409; throw error; }
+      logEvent(DB,HUMAN_ID,'experiment.finished',{experimentId:experiment.id});
+      return send(res,200,{experiment,comparison:compareExperiment(DB,id)},cors);
+    }
+    if(req.method==='GET' && url.pathname.startsWith('/api/experiments/')) {
+      const id=decodeURIComponent(url.pathname.slice('/api/experiments/'.length));
+      return send(res,200,compareExperiment(DB,id),cors);
+    }
+    if(req.method==='GET' && url.pathname==='/api/replay') {
+      let events;
+      try { events=replayEvents(DB,{from:url.searchParams.get('from'),to:url.searchParams.get('to'),limit:Number(url.searchParams.get('limit')||1000)}); }
+      catch(error) { if(error instanceof TypeError) error.status=400; throw error; }
+      return send(res,200,{events},cors);
     }
     if(req.method==='GET' && url.pathname==='/api/events') {
       const requestedLimit=Number(url.searchParams.get('limit')||50), limit=Number.isInteger(requestedLimit)?Math.max(1,Math.min(200,requestedLimit)):50;

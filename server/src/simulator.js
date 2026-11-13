@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { CodexRunner } from '../../engine/codex-runner.mjs';
-import { readSettings } from './store.js';
+import { logEvent, readSettings } from './store.js';
+import { activeCondition, ensureExperimentSchema } from './experiments.js';
 
 const ORCHESTRATOR_MODEL=process.env.CYGNET_ORCHESTRATOR_MODEL||'gpt-6-luna';
 const PERSONA_MODEL=process.env.CYGNET_PERSONA_MODEL||'gpt-6-luna';
@@ -56,6 +57,11 @@ function englishText(value,key,max=5000,optional=false) {
   return value.trim();
 }
 function nextMinutes(minutes) { return new Date(Date.now()+minutes*60000).toISOString(); }
+export function dmSafetyBoundary(senderAge, recipientAge) {
+  return Number.isInteger(senderAge)&&senderAge>=18&&Number.isInteger(recipientAge)&&recipientAge>=18
+    ? 'Mild, non-graphic adult flirtation is okay; keep it text-only and do not produce explicit sexual content.'
+    : 'Keep the message strictly non-sexual and age-appropriate; never flirt sexually with a minor or anyone whose age is unknown.';
+}
 
 export class Simulator {
   #timer=null;
@@ -64,6 +70,7 @@ export class Simulator {
 
   constructor({db,applyAction,mediaDir,dataDir=null,runner=null,tickMs=60_000,maxPerTick=10,now=()=>Date.now()}={}) {
     if(!db||typeof applyAction!=='function'||!mediaDir) throw new TypeError('db, applyAction, and mediaDir are required');
+    ensureExperimentSchema(db);
     this.db=db; this.applyAction=applyAction; this.mediaDir=mediaDir; this.now=now;
     this.maxPerTick=Math.max(1,Math.min(10,maxPerTick));
     this.tickMs=tickMs;
@@ -164,7 +171,9 @@ export class Simulator {
       if(assignment.kind==='post'||assignment.kind==='story') {
         const caption=englishText(content.caption,'caption',2000);
         const imagePrompt=englishText(content.imagePrompt,'imagePrompt',2000);
-        const image=await this.runner.generatePostImage({prompt:`English-only public social-media photograph. ${imagePrompt}. No sexual imagery; do not depict minors in a sexualized context.`,outputName:`${account.id}-${randomUUID()}.png`,model:PERSONA_MODEL,effort:'low'});
+        let image;
+        try { image=await this.runner.generatePostImage({prompt:`English-only public social-media photograph. ${imagePrompt}. No sexual imagery; do not depict minors in a sexualized context.`,outputName:`${account.id}-${randomUUID()}.png`,model:PERSONA_MODEL,effort:'low'}); }
+        catch(error) { logEvent(this.db,account.id,'image.generation.failed',{error:String(error?.message||error).slice(0,500)}); throw error; }
         payload={...payload,caption,mediaFilename:image.path.split(/[\\/]/).at(-1)};
       } else if(assignment.kind==='comment') {
         payload={...payload,postId:targetId,content:englishText(content.content,'content',2000)};
@@ -181,17 +190,16 @@ export class Simulator {
 
   #personaTask(assignment,account,candidates) {
     const target=assignment.targetId;
-    if(assignment.kind==='post'||assignment.kind==='story') return `Create one ${assignment.kind} with an English caption and an English imagePrompt. Return JSON only: {"caption":"...","imagePrompt":"..."}. Keep the public text and image prompt non-sexual. Do not include minors in romantic or sexualized imagery.`;
-    if(assignment.kind==='comment') return `Write one natural English comment on the assigned post. Post ID: ${target}. Post: ${JSON.stringify(candidates.posts.find((post)=>post.id===target))}. Return JSON only: {"content":"..."}.`;
+    const condition=activeCondition(this.db,account.id);
+    const style=condition==='concise'?'Use concise wording, usually one sentence.':condition==='expressive'?'Use a more expressive style, usually two or three sentences.':'';
+    if(assignment.kind==='post'||assignment.kind==='story') return `Create one ${assignment.kind} with an English caption and an English imagePrompt. ${style} Return JSON only: {"caption":"...","imagePrompt":"..."}. Keep the public text and image prompt non-sexual. Do not include minors in romantic or sexualized imagery.`;
+    if(assignment.kind==='comment') return `Write one natural English comment on the assigned post. ${style} Post ID: ${target}. Post: ${JSON.stringify(candidates.posts.find((post)=>post.id===target))}. Return JSON only: {"content":"..."}.`;
     if(assignment.kind==='dm') {
       const recipient=this.db.prepare('SELECT id,username,age,country,system_md,is_human FROM accounts WHERE id=?').get(target);
       const recent=this.db.prepare(`SELECT m.content,m.sender_id,a.username FROM messages m JOIN conversation_members mine ON mine.conversation_id=m.conversation_id AND mine.account_id=? JOIN conversation_members other ON other.conversation_id=m.conversation_id AND other.account_id=? JOIN accounts a ON a.id=m.sender_id ORDER BY m.created_at DESC LIMIT 8`).all(account.id,target).reverse();
       const relation=this.db.prepare("SELECT kind FROM edges WHERE source_id=? AND target_id=? AND kind IN ('follow','friend') ORDER BY kind").all(account.id,target).map(({kind})=>kind);
-      const adultPair=Number.isInteger(account.age)&&account.age>=18&&Number.isInteger(recipient.age)&&recipient.age>=18;
-      const boundary=adultPair
-        ? 'Mild, non-graphic adult flirtation is okay; keep it text-only and do not produce explicit sexual content.'
-        : 'Keep the message strictly non-sexual and age-appropriate; never flirt sexually with a minor or anyone whose age is unknown.';
-      return `Write one English private message to @${recipient.username}. Sender age: ${account.age??'unknown'}; recipient age: ${recipient.age??'unknown'}. Relationship: ${JSON.stringify(relation)}. ${boundary} Recent conversation, oldest first: ${JSON.stringify(recent)}. Return JSON only: {"content":"..."}.`;
+      const boundary=dmSafetyBoundary(account.age,recipient.age);
+      return `Write one English private message to @${recipient.username}. ${style} Sender age: ${account.age??'unknown'}; recipient age: ${recipient.age??'unknown'}. Relationship: ${JSON.stringify(relation)}. ${boundary} Recent conversation, oldest first: ${JSON.stringify(recent)}. Return JSON only: {"content":"..."}.`;
     }
     throw new TypeError(`Unsupported persona task: ${assignment.kind}`);
   }

@@ -31,6 +31,8 @@ Open the local URL printed by Vite. The API listens only on `127.0.0.1:4179`. On
 
 The **Simulation settings** page controls activity speed, the 1–10 persona worker limit, age/country distribution, and the optional alternate-account block-evasion scenario. Applying a population distribution changes age and country for the 100 original personas and rebuilds their `system.md` files. **Activity archive** filters and pages through the local event log. The seeded feed uses four locally bundled Codex imagegen photos; persona posts continue to generate their own images.
 
+The **Research workspace** builds date-range JSON/CSV reports from saved events and activity, starts explicit two-cohort comparisons using concise versus expressive response styles, and replays the event timeline without repeating actions. Simulation settings and population changes are locked while a cohort experiment is active. The report describes the selected dates; a full seven-day report requires running the local simulation for that period.
+
 ## Local files and data
 
 - SQLite database: `server/data/cygnet.sqlite`
@@ -38,6 +40,9 @@ The **Simulation settings** page controls activity speed, the 1–10 persona wor
 - Persona prompts: `server/data/personas/<persona-id>/system.md`
 - JSON export: `http://127.0.0.1:4179/api/export`
 - Filtered event archive API: `http://127.0.0.1:4179/api/events`
+- JSON/CSV research reports: `http://127.0.0.1:4179/api/report?from=YYYY-MM-DD&to=YYYY-MM-DD` and `/api/report.csv`
+- Cohort experiments and comparison: `http://127.0.0.1:4179/api/experiments`
+- Read-only event timeline: `http://127.0.0.1:4179/api/replay?from=<ISO>&to=<ISO>`
 - Persistent simulation settings API: `http://127.0.0.1:4179/api/settings`
 - Simulator state: `http://127.0.0.1:4179/api/simulator`
 

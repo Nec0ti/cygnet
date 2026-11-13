@@ -2,6 +2,16 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13 — 1.1 ve 2.0 uygulaması tamamlandı
+
+- 1.1 araştırma alanı tarih aralıklı post/story/DM/etkileşim/takip/report/görsel ve imagegen hata sayılarını özetliyor; JSON/CSV indirme spreadsheet formül enjeksiyonuna karşı korunuyor ve ayar snapshot'ı ekleniyor.
+- 2.0 araması profil alanlarını tarıyor; ana akış yeni/beğeni/yorum sıralaması sunuyor. Klavye/focus ve ekran okuyucu etiketleri iyileştirildi.
+- Açık A/B persona kohortları kısa/ifadeci yanıt koşullarını uyguluyor; aktif deneyde simülasyon ayarı ve nüfus değişimi kilitli. Replay geçmiş event'leri sırayla gösteriyor ama işlemleri tekrar çalıştırmıyor.
+- Seed/system prompt tutarlılığı ve küçük yaş güvenlik sınırları self-check'e alındı; retry, report, experiment ve replay kontrolleri geçti.
+- Web production build ve izole API akışı geçti: JSON/CSV raporu, geçersiz tarih, deney oluştur/bitir/karşılaştır, ayar kilidi ve replay kontrol edildi. Tarayıcı görsel E2E'si çalıştırılmadı.
+- Test sunucusu ve DB `/tmp` altında açılıp kapatıldı ve silindi; gerçek `server/data` kullanılmadı.
+- Sıradaki: değişiklikleri private `main`e push etmek; ardından gerçek haftalık kullanım verisiyle rapor hazırlamak.
+
 ## 2026-11-13 — 1.1 ve 2.0 çalışması başladı
 
 - Kullanıcı tüm yol haritası tamamlanana kadar devam etmemi istedi; açık kapsam `todos.md` içinde 1.1 rapor araçları ve 2.0 keşif, kohort karşılaştırma, salt okunur replay olarak netleştirildi.

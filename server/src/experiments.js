@@ -7,6 +7,8 @@ export function ensureExperimentSchema(db) {
     label TEXT NOT NULL,
     cohort_a_name TEXT NOT NULL,
     cohort_b_name TEXT NOT NULL,
+    cohort_a_condition TEXT NOT NULL DEFAULT 'concise',
+    cohort_b_condition TEXT NOT NULL DEFAULT 'expressive',
     cohort_a_ids TEXT NOT NULL,
     cohort_b_ids TEXT NOT NULL,
     settings_json TEXT NOT NULL,
@@ -19,6 +21,9 @@ export function ensureExperimentSchema(db) {
   );
   CREATE INDEX IF NOT EXISTS experiments_started_idx ON experiments(started_at DESC);
   CREATE INDEX IF NOT EXISTS events_actor_time_idx ON events(actor_id,created_at,id);`);
+  const columns = new Set(db.prepare('PRAGMA table_info(experiments)').all().map((column) => column.name));
+  if (!columns.has('cohort_a_condition')) db.exec("ALTER TABLE experiments ADD COLUMN cohort_a_condition TEXT NOT NULL DEFAULT 'concise'");
+  if (!columns.has('cohort_b_condition')) db.exec("ALTER TABLE experiments ADD COLUMN cohort_b_condition TEXT NOT NULL DEFAULT 'expressive'");
 }
 
 function parseExperiment(row) {
@@ -26,8 +31,8 @@ function parseExperiment(row) {
   return {
     id: row.id, label: row.label,
     cohorts: {
-      a: { name: row.cohort_a_name, accountIds: JSON.parse(row.cohort_a_ids) },
-      b: { name: row.cohort_b_name, accountIds: JSON.parse(row.cohort_b_ids) },
+      a: { name: row.cohort_a_name, condition: row.cohort_a_condition, accountIds: JSON.parse(row.cohort_a_ids) },
+      b: { name: row.cohort_b_name, condition: row.cohort_b_condition, accountIds: JSON.parse(row.cohort_b_ids) },
     },
     settings: JSON.parse(row.settings_json), startedAt: row.started_at, finishedAt: row.finished_at,
     startCursor: row.start_event_time ? { createdAt: row.start_event_time, id: row.start_event_id } : null,
@@ -58,8 +63,10 @@ function eventBounds(db, experiment) {
   return { where: clauses.length ? `WHERE ${clauses.join(' AND ')}` : '', params };
 }
 
-export function createExperiment(db, { label, cohortA, cohortB, now = new Date().toISOString() }) {
+export function createExperiment(db, { label, cohortA, cohortB, conditionA = 'concise', conditionB = 'expressive', now = new Date().toISOString() }) {
   if (typeof label !== 'string' || !label.trim() || label.trim().length > 100) throw new TypeError('Experiment label must be 1–100 characters');
+  if (!['concise', 'expressive'].includes(conditionA) || !['concise', 'expressive'].includes(conditionB) || conditionA === conditionB)
+    throw new TypeError('Cohorts must have different supported conditions: concise and expressive');
   const normalize = (value, name) => {
     if (!Array.isArray(value) || !value.length || value.length > 1000
       || value.some((id) => typeof id !== 'string' || !id || id === 'human')
@@ -74,9 +81,9 @@ export function createExperiment(db, { label, cohortA, cohortB, now = new Date()
   if (found.length !== ids.length) throw new TypeError('Every cohort member must be an existing AI profile');
   if (!Number.isFinite(Date.parse(now))) throw new TypeError('Experiment start time must be a valid date');
   const eventCursor = cursor(db), id = randomUUID(), settings = readSettings(db);
-  db.prepare(`INSERT INTO experiments(id,label,cohort_a_name,cohort_b_name,cohort_a_ids,cohort_b_ids,settings_json,started_at,
-    start_event_time,start_event_id) VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
-    id, label.trim(), 'A', 'B', JSON.stringify(a), JSON.stringify(b), JSON.stringify(settings), new Date(now).toISOString(),
+  db.prepare(`INSERT INTO experiments(id,label,cohort_a_name,cohort_b_name,cohort_a_condition,cohort_b_condition,cohort_a_ids,cohort_b_ids,settings_json,started_at,
+    start_event_time,start_event_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    id, label.trim(), 'A', 'B', conditionA, conditionB, JSON.stringify(a), JSON.stringify(b), JSON.stringify(settings), new Date(now).toISOString(),
     eventCursor?.created_at ?? null, eventCursor?.id ?? null,
   );
   return getExperiment(db, id);
@@ -88,6 +95,15 @@ export function getExperiment(db, id) {
 
 export function listExperiments(db) {
   return db.prepare('SELECT * FROM experiments ORDER BY started_at DESC,id DESC').all().map(parseExperiment);
+}
+
+export function activeCondition(db, accountId) {
+  const row = db.prepare(`SELECT cohort_a_condition,cohort_b_condition,cohort_a_ids,cohort_b_ids FROM experiments
+    WHERE finished_at IS NULL ORDER BY started_at DESC LIMIT 1`).get();
+  if (!row) return null;
+  if (JSON.parse(row.cohort_a_ids).includes(accountId)) return row.cohort_a_condition;
+  if (JSON.parse(row.cohort_b_ids).includes(accountId)) return row.cohort_b_condition;
+  return null;
 }
 
 export function finishExperiment(db, id, now = new Date().toISOString()) {

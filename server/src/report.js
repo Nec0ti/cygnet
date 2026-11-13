@@ -1,4 +1,4 @@
-const METRICS = ['posts', 'stories', 'likes', 'comments', 'follows', 'dms', 'reports', 'images'];
+const METRICS = ['posts', 'stories', 'likes', 'comments', 'follows', 'dms', 'reports', 'images', 'imageFailures'];
 
 function dateRange(from, to) {
   const valid = (value) => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -28,6 +28,7 @@ export function buildReport(db, from, to, settings) {
     ['events', 'likes', 'created_at', (row) => row.type === 'like.created'],
     ['comments', 'comments', 'created_at'],
     ['events', 'follows', 'created_at', (row) => row.type === 'follow.created' || row.type === 'follow.removed'],
+    ['events', 'imageFailures', 'created_at', (row) => row.type === 'image.generation.failed'],
     ['messages', 'dms', 'created_at'], ['reports', 'reports', 'created_at'],
   ];
   const imageRows = [];
@@ -69,7 +70,7 @@ export function buildReport(db, from, to, settings) {
 
 function csvCell(value) {
   let text = value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
   return `"${text.replaceAll('"', '""')}"`;
 }
 

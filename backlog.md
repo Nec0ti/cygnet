@@ -2,11 +2,11 @@
 
 ## Durum özeti
 
-- Aşama: 1.1 raporlama ve 2.0 geliştirmesi
-- Son tamamlanan iş: Cygnet 1.0 doğrulandı ve private `main`e gönderildi (`ed80871`)
-- Şu an yapılan iş: tarih aralıklı deney raporu, keşif/erişilebilirlik ve kohort/replay özellikleri
-- Sıradaki adım: 1.1 API ve 2.0 kohort altyapısını birleştirip UI'ı bağlamak; her akışı izole DB'de doğrulamak
-- Açık sınırlar: gerçek haftalık deney verisi henüz yok; raporlama aracı bittiğinde kullanıcı çalıştırması gerekecek
+- Aşama: 1.1 ve 2.0 uygulaması doğrulandı; commit/push hazırlanıyor
+- Son tamamlanan iş: JSON/CSV raporu, keşif UI'ı, kontrollü kohort karşılaştırması, salt okunur replay ve izole API akışı
+- Şu an yapılan iş: dokümantasyon, son kontroller ve Git senkronizasyonu
+- Sıradaki adım: özellikleri private `main`e push etmek; sonra yerel simülasyonu bir hafta çalıştırıp deney raporu üretmek
+- Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 
 ## İşler
 
@@ -38,16 +38,16 @@
 
 ### Cygnet 1.1
 
-- [ ] Tarih aralıklı JSON/CSV metrik raporu ve ayar snapshot'ı.
-- [ ] Rapor API self-check'leri ve UI'dan indirme.
-- [ ] Gerçek bir haftalık simülasyon çalıştırıp rapor üretme (araç hazır olunca kullanıcı yerel deneyini başlatabilir).
+- [x] Tarih aralıklı JSON/CSV metrik raporu ve ayar snapshot'ı.
+- [x] Rapor API self-check'leri ve UI'dan indirme.
+- [ ] Gerçek bir haftalık simülasyon çalıştırıp rapor üretme.
 
 ### Cygnet 2.0
 
-- [ ] Profil araması, feed sıralaması ve temel klavye/ekran okuyucu iyileştirmeleri.
-- [ ] Açık persona kohortları ve ayar snapshot'ı ile etkinlik karşılaştırma.
-- [ ] Salt okunur olay günlüğü replay'i; hiçbir sosyal işlemi tekrar çalıştırmaz.
-- [ ] Karakter/yaş sınırı self-check ve uçtan uca API/UI doğrulaması.
+- [x] Profil araması, feed sıralaması ve temel klavye/ekran okuyucu iyileştirmeleri.
+- [x] Açık persona kohortları, kısa/ifadeci yanıt koşulları, ayar snapshot'ı ile etkinlik karşılaştırma.
+- [x] Salt okunur olay günlüğü replay'i; hiçbir sosyal işlemi tekrar çalıştırmaz.
+- [x] Karakter/yaş sınırı self-check ve uçtan uca API/UI doğrulaması.
 
 ## Kayıt kuralı
 

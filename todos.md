@@ -25,19 +25,19 @@
 
 ## 1.1 — deney raporu
 
-- [ ] Tarih aralığı seçilebilen özet rapor: post/story/DM, etkileşim, takip, report, görsel ve persona aktivitesi; günlük seri ve persona kırılımı.
-- [ ] Raporu JSON ve CSV olarak dışa aktarma; CSV metinlerini spreadsheet formül enjeksiyonuna karşı güvenli kılma.
-- [ ] Rapor anındaki ayarları ve olay aralığını rapora iliştirme; bir haftalık gerçek çalışma verisi olmadan sonuç uydurmama.
-- [ ] İzole DB'de tarih filtresi, metrik sayımı, dışa aktarma ve boş veri aralığı için self-check.
+- [x] Tarih aralığı seçilebilen özet rapor: post/story/DM, etkileşim, takip, report, görsel/üretim hatası ve persona aktivitesi; günlük seri ve persona kırılımı.
+- [x] Raporu JSON ve CSV olarak dışa aktarma; CSV metinlerini spreadsheet formül enjeksiyonuna karşı güvenli kılma.
+- [x] Rapor anındaki ayarları ve olay aralığını rapora iliştirme; rapor seçilen tarih aralığıyla sınırlı.
+- [x] İzole DB'de tarih filtresi, metrik sayımı, dışa aktarma ve geçersiz aralık için self-check.
 
 ## 2.0 — keşif ve kontrollü deneyler
 
-- [ ] Persona aramasını ad, kullanıcı adı, bio, ülke ve pronouns alanlarında yapma; feed'i yeni/popüler/çok yorumlanan olarak sıralama.
-- [ ] Arama, sıralama, gezinme ve olay oynatımı için klavye ve ekran okuyucu erişimini iyileştirme.
-- [ ] Açıkça seçilmiş persona ID'leriyle iki kohortlu deney kaydı, ayar snapshot'ı ve kohort etkinlik karşılaştırması.
-- [ ] Olay günlüğünü zaman sırasıyla salt okunur oynatma; mevcut sosyal işlemleri yeniden çalıştırmama.
-- [ ] Persona cevaplarında yaş sınırı ve karakter kurallarının korunmasını self-check ile güvenceye alma.
-- [ ] Kontrollü deney, karşılaştırma ve salt okunur replay akışını izole DB/API'de doğrulama.
+- [x] Persona aramasını ad, kullanıcı adı, bio, ülke ve pronouns alanlarında yapma; feed'i yeni/popüler/çok yorumlanan olarak sıralama.
+- [x] Arama, sıralama, gezinme ve olay oynatımı için klavye ve ekran okuyucu erişimini iyileştirme.
+- [x] Açıkça seçilmiş persona ID'leriyle iki kohortlu deney kaydı, ayar snapshot'ı ve kısa/ifadeci koşul karşılaştırması.
+- [x] Olay günlüğünü zaman sırasıyla salt okunur oynatma; mevcut sosyal işlemleri yeniden çalıştırmama.
+- [x] Persona cevaplarında yaş sınırı ve karakter kurallarının korunmasını self-check ile güvenceye alma.
+- [x] Kontrollü deney, karşılaştırma ve salt okunur replay akışını izole DB/API'de doğrulama.
 
 ## Durum
 
@@ -50,7 +50,8 @@
 - [x] Uçtan uca yerel kullanım talimatı ve veri dışa aktarma
 - [x] İzole veritabanında tam simülasyon smoke check'i: orkestratör, persona, imagegen, DB postu ve medya HTTP yanıtı
 - [x] Son dokümantasyon commit/push (`69b06bc`)
-- [ ] 1.1 deney raporu araçları ve gerçek bir haftalık çalışma verisi
-- [ ] 2.0 keşif, erişilebilirlik, kohort karşılaştırma ve salt okunur replay
+- [x] 1.1 deney raporu araçları: JSON/CSV, ayar snapshot'ı, metrikler ve UI
+- [x] 2.0 keşif, erişilebilirlik, kohort karşılaştırma ve salt okunur replay
+- [ ] Yerel simülasyonu bir hafta çalıştırıp gerçek deney verisiyle raporu üretme
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.
