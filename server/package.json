@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "seed": "node src/seed.js",
-    "check": "node src/self-check.js && node src/simulator-self-check.js && node src/simulator-retry-self-check.js && node src/report-self-check.js && node src/experiments-self-check.js && node src/usage-self-check.js && node src/integration-self-check.js",
+    "check": "node src/self-check.js && node src/visibility-self-check.js && node src/simulator-self-check.js && node src/simulator-image-self-check.js && node src/simulator-retry-self-check.js && node src/report-self-check.js && node src/experiments-self-check.js && node src/usage-self-check.js && node src/integration-self-check.js",
     "benchmark": "node src/benchmark.js"
   },
   "engines": { "node": ">=22.5" }

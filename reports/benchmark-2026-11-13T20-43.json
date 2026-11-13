@@ -1,0 +1,358 @@
+{
+  "startedAt": "2026-11-13T20:43:30.719Z",
+  "environment": {
+    "node": "v26.12.1",
+    "platform": "linux",
+    "arch": "x64",
+    "cpus": 8
+  },
+  "memoryRssBytes": 189112320,
+  "results": [
+    {
+      "profiles": 100,
+      "dataset": {
+        "profiles": 100,
+        "events": 10000,
+        "posts": 1000,
+        "messages": 1000
+      },
+      "correctness": {
+        "passed": 5,
+        "total": 5,
+        "scorePercent": 100
+      },
+      "results": [
+        {
+          "route": "bootstrap",
+          "requests": 10,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 57.23,
+          "p95Ms": 92.12,
+          "maxMs": 92.12,
+          "requestsPerSecond": 15.9,
+          "avgResponseBytes": 354802
+        },
+        {
+          "route": "bootstrap",
+          "requests": 10,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 318.46,
+          "p95Ms": 498.49,
+          "maxMs": 498.49,
+          "requestsPerSecond": 19.9,
+          "avgResponseBytes": 354802
+        },
+        {
+          "route": "events-200",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 6.17,
+          "p95Ms": 10.93,
+          "maxMs": 22.14,
+          "requestsPerSecond": 139.3,
+          "avgResponseBytes": 29621
+        },
+        {
+          "route": "events-200",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 38.01,
+          "p95Ms": 86.29,
+          "maxMs": 87.31,
+          "requestsPerSecond": 189.56,
+          "avgResponseBytes": 29621
+        },
+        {
+          "route": "report",
+          "requests": 10,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 258,
+          "p95Ms": 283.25,
+          "maxMs": 283.25,
+          "requestsPerSecond": 3.83,
+          "avgResponseBytes": 1468124
+        },
+        {
+          "route": "report",
+          "requests": 10,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 1167.85,
+          "p95Ms": 2508.67,
+          "maxMs": 2508.67,
+          "requestsPerSecond": 3.98,
+          "avgResponseBytes": 1468124
+        },
+        {
+          "route": "replay-5000",
+          "requests": 12,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 54.88,
+          "p95Ms": 76.91,
+          "maxMs": 76.91,
+          "requestsPerSecond": 17.37,
+          "avgResponseBytes": 735552
+        },
+        {
+          "route": "replay-5000",
+          "requests": 12,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 301.19,
+          "p95Ms": 510.66,
+          "maxMs": 510.66,
+          "requestsPerSecond": 19.57,
+          "avgResponseBytes": 735552
+        },
+        {
+          "route": "settings",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 2.66,
+          "p95Ms": 10.36,
+          "maxMs": 11.35,
+          "requestsPerSecond": 267.99,
+          "avgResponseBytes": 104
+        },
+        {
+          "route": "settings",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 11,
+          "p95Ms": 15.91,
+          "maxMs": 16.71,
+          "requestsPerSecond": 776.06,
+          "avgResponseBytes": 104
+        },
+        {
+          "route": "profile",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 4.49,
+          "p95Ms": 6.54,
+          "maxMs": 6.67,
+          "requestsPerSecond": 210.64,
+          "avgResponseBytes": 3467
+        },
+        {
+          "route": "profile",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 27.12,
+          "p95Ms": 61.69,
+          "maxMs": 62.61,
+          "requestsPerSecond": 264.81,
+          "avgResponseBytes": 3467
+        },
+        {
+          "route": "action-profile-update",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 7.3,
+          "p95Ms": 8.93,
+          "maxMs": 10.01,
+          "requestsPerSecond": 136.13,
+          "avgResponseBytes": 237
+        },
+        {
+          "route": "action-profile-update",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 49.26,
+          "p95Ms": 100.27,
+          "maxMs": 101.6,
+          "requestsPerSecond": 164.39,
+          "avgResponseBytes": 237
+        }
+      ],
+      "serverRssBytes": 267825152,
+      "dbBytes": 2904064,
+      "journalBytes": 0
+    },
+    {
+      "profiles": 1000,
+      "dataset": {
+        "profiles": 1000,
+        "events": 100000,
+        "posts": 10000,
+        "messages": 10000
+      },
+      "correctness": {
+        "passed": 5,
+        "total": 5,
+        "scorePercent": 100
+      },
+      "results": [
+        {
+          "route": "bootstrap",
+          "requests": 10,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 301.87,
+          "p95Ms": 474.94,
+          "maxMs": 474.94,
+          "requestsPerSecond": 2.86,
+          "avgResponseBytes": 2854800
+        },
+        {
+          "route": "bootstrap",
+          "requests": 10,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 1967.18,
+          "p95Ms": 3108.74,
+          "maxMs": 3108.74,
+          "requestsPerSecond": 3.21,
+          "avgResponseBytes": 2854800
+        },
+        {
+          "route": "events-200",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 7.68,
+          "p95Ms": 11.5,
+          "maxMs": 41.83,
+          "requestsPerSecond": 110.16,
+          "avgResponseBytes": 30908
+        },
+        {
+          "route": "events-200",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 34.07,
+          "p95Ms": 78.69,
+          "maxMs": 79.73,
+          "requestsPerSecond": 217.21,
+          "avgResponseBytes": 30908
+        },
+        {
+          "route": "report",
+          "requests": 10,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 2879.35,
+          "p95Ms": 4069.56,
+          "maxMs": 4069.56,
+          "requestsPerSecond": 0.32,
+          "avgResponseBytes": 15270008
+        },
+        {
+          "route": "report",
+          "requests": 10,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 43043.58,
+          "p95Ms": 43387.77,
+          "maxMs": 43387.77,
+          "requestsPerSecond": 0.23,
+          "avgResponseBytes": 15270008
+        },
+        {
+          "route": "replay-5000",
+          "requests": 12,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 58.32,
+          "p95Ms": 104.09,
+          "maxMs": 104.09,
+          "requestsPerSecond": 15.21,
+          "avgResponseBytes": 760172
+        },
+        {
+          "route": "replay-5000",
+          "requests": 12,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 352.19,
+          "p95Ms": 652.97,
+          "maxMs": 652.97,
+          "requestsPerSecond": 17.15,
+          "avgResponseBytes": 760172
+        },
+        {
+          "route": "settings",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 3.42,
+          "p95Ms": 5.85,
+          "maxMs": 9.82,
+          "requestsPerSecond": 260.89,
+          "avgResponseBytes": 104
+        },
+        {
+          "route": "settings",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 15.95,
+          "p95Ms": 22.11,
+          "maxMs": 22.16,
+          "requestsPerSecond": 510.59,
+          "avgResponseBytes": 104
+        },
+        {
+          "route": "profile",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 9.98,
+          "p95Ms": 12.25,
+          "maxMs": 12.99,
+          "requestsPerSecond": 98.48,
+          "avgResponseBytes": 3485
+        },
+        {
+          "route": "profile",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 63.34,
+          "p95Ms": 139.02,
+          "maxMs": 140.08,
+          "requestsPerSecond": 112.09,
+          "avgResponseBytes": 3485
+        },
+        {
+          "route": "action-profile-update",
+          "requests": 20,
+          "concurrency": 1,
+          "errors": 0,
+          "p50Ms": 6.29,
+          "p95Ms": 8.3,
+          "maxMs": 10.3,
+          "requestsPerSecond": 153.22,
+          "avgResponseBytes": 237
+        },
+        {
+          "route": "action-profile-update",
+          "requests": 20,
+          "concurrency": 10,
+          "errors": 0,
+          "p50Ms": 30.83,
+          "p95Ms": 67.11,
+          "maxMs": 71.94,
+          "requestsPerSecond": 228.91,
+          "avgResponseBytes": 237
+        }
+      ],
+      "serverRssBytes": 647790592,
+      "dbBytes": 28016640,
+      "journalBytes": 0
+    }
+  ]
+}

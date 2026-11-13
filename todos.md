@@ -48,6 +48,15 @@
 - [x] Platform dakika sayısını yazarak çift onay isteyen ve ilk duruma döndüren reset akışı; insan profili fotoğrafını ve temel bilgilerini koru.
 - [x] Aynı modüler kontrolleri, gerçek Chromium E2E akışlarını ve 100/1.000 profilli benchmark'ı yeni goal altında çalıştır; hataları düzelt ve raporla (`reports/2026-11-13-profile-reset-verification.md`).
 
+## 2.2 — canlı görseller, story gizliliği ve admin
+
+- [x] İlk 100 persona için 100 benzersiz raster portre; eski seed portrelerini migration ile değiştir.
+- [x] Sonraki hesap avatarlarını, post/story görsellerini ve DM fotoğraflarını paylaşım/oluşturma anında Codex CLI imagegen ile üret.
+- [x] AI–AI DM'lerde bağlama göre fotoğraf paylaşımını destekle; fingerprint'leri post ve mesajlar arasında kontrol et.
+- [x] Story'leri insan ve AI tarafında takip grafiğine göre göster; blok ve süre dolumunu uygula.
+- [x] More menüsüne admin alanı, varsayılan koyu tema, report/persona/content kontrolleri ve profil düğmesi durumlarını ekle.
+- [x] Modüler testler, gerçek Chromium E2E 19/19, 100/1.000 benchmark ve sonuç raporu (`reports/2026-11-14-realtime-images-admin-verification.md`).
+
 ## Yerel kullanım süresi, dayanıklılık ve benchmark
 
 - [x] Sunucu açık süresini ve görünür/odaklı platform süresini ayrı, kalıcı SQLite sayaçlarında biriktir; restart aralıklarını sayma.
@@ -73,5 +82,6 @@
 - [x] 2.0 keşif, erişilebilirlik, kohort karşılaştırma ve salt okunur replay
 - [ ] Yerel simülasyonu bir hafta çalıştırıp gerçek deney verisiyle raporu üretme
 - [x] Profil fotoğrafları, gerçek takip sayıları, More menüsü ve çift onaylı reset için gerçek tarayıcı/API doğrulaması (Chromium 17/17)
+- [x] 2.2 canlı görseller, story gizliliği, admin ve koyu tema; test ve benchmark raporu (`reports/2026-11-14-realtime-images-admin-verification.md`)
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.

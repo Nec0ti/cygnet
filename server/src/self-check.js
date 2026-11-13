@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from './store.js';
@@ -14,7 +14,10 @@ try {
   assert.deepEqual(result,{seeded:true,accounts:101});
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND country='United States'").get().n,60);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND age BETWEEN 16 AND 30').get().n,100);
-  const personas=db.prepare('SELECT id,name,age,country,pronouns,tone,traits_json,system_md FROM accounts WHERE is_human=0').all();
+  const personas=db.prepare('SELECT id,name,age,country,pronouns,tone,traits_json,system_md,avatar_filename FROM accounts WHERE is_human=0').all();
+  const portraits=readdirSync(join(import.meta.dirname,'../assets/profile-avatars')).filter((file)=>/^portrait-\d{2}\.jpg$/.test(file));
+  assert.equal(portraits.length,100);
+  assert.equal(new Set(personas.map((profile)=>profile.avatar_filename)).size,100);
   assert.ok(personas.some((profile)=>profile.age<18));
   for(const profile of personas) {
     assert.ok(profile.system_md.includes(`- Name: ${profile.name}`));
@@ -35,8 +38,11 @@ try {
   writeFileSync(join(temp,'generated.png'),'not-an-image-but-a-file');
   assert.equal(existingMedia('generated.png',temp),'generated.png');
   assert.throws(()=>existingMedia('../generated.png',temp),/Generated media file not found/);
+  writeFileSync(join(temp,'media','profile-01.jpg'),'legacy seed portrait');
+  db.prepare("UPDATE accounts SET avatar_filename='profile-01.jpg' WHERE id='u0001'").run();
   const seededAgain=seedStore(db,{dataRoot:temp});
   assert.equal(seededAgain.seeded,false);
+  assert.equal(db.prepare("SELECT avatar_filename FROM accounts WHERE id='u0001'").get().avatar_filename,'profile-001.jpg');
   console.log('Cygnet seed self-check passed.');
 } finally {
   db.close();

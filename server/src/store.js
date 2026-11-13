@@ -21,7 +21,8 @@ export function openStore(path = DB_PATH) {
       extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
       post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
       last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT,
-      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', avatar_filename TEXT, created_at TEXT NOT NULL,
+      retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', avatar_filename TEXT, is_paused INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
       alias_of TEXT REFERENCES accounts(id), evade_due_at TEXT, retry_count INTEGER NOT NULL DEFAULT 0, retry_error TEXT
     );
     CREATE TABLE IF NOT EXISTS edges (
@@ -31,7 +32,8 @@ export function openStore(path = DB_PATH) {
     );
     CREATE TABLE IF NOT EXISTS posts (
       id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
-      caption TEXT NOT NULL DEFAULT '', media_filename TEXT, kind TEXT NOT NULL DEFAULT 'post',
+      caption TEXT NOT NULL DEFAULT '', media_filename TEXT, image_prompt TEXT, image_category TEXT, image_sha256 TEXT,
+      kind TEXT NOT NULL DEFAULT 'post',
       created_at TEXT NOT NULL, expires_at TEXT
     );
     CREATE TABLE IF NOT EXISTS likes (
@@ -52,7 +54,7 @@ export function openStore(path = DB_PATH) {
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
       sender_id TEXT NOT NULL REFERENCES accounts(id), content TEXT NOT NULL DEFAULT '',
-      media_filename TEXT, created_at TEXT NOT NULL, deleted_at TEXT
+      media_filename TEXT, image_prompt TEXT, image_sha256 TEXT, created_at TEXT NOT NULL, deleted_at TEXT
     );
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
@@ -61,7 +63,8 @@ export function openStore(path = DB_PATH) {
     );
     CREATE TABLE IF NOT EXISTS reports (
       id TEXT PRIMARY KEY, reporter_id TEXT NOT NULL REFERENCES accounts(id),
-      target_type TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT NOT NULL, created_at TEXT NOT NULL
+      target_type TEXT NOT NULL, target_id TEXT NOT NULL, reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY, actor_id TEXT NOT NULL REFERENCES accounts(id),
@@ -82,7 +85,16 @@ export function openStore(path = DB_PATH) {
     last_dm_at: 'TEXT', last_contact_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
     evade_due_at: 'TEXT', retry_count: 'INTEGER NOT NULL DEFAULT 0', retry_error: 'TEXT',
     avatar_filename: 'TEXT',
+    is_paused: 'INTEGER NOT NULL DEFAULT 0',
   })) if (!columns.has(name)) db.exec(`ALTER TABLE accounts ADD COLUMN ${name} ${definition}`);
+  const postColumns=new Set(db.prepare('PRAGMA table_info(posts)').all().map((column)=>column.name));
+  for(const [name,definition] of Object.entries({image_prompt:'TEXT',image_category:'TEXT',image_sha256:'TEXT'}))
+    if(!postColumns.has(name)) db.exec(`ALTER TABLE posts ADD COLUMN ${name} ${definition}`);
+  const messageColumns=new Set(db.prepare('PRAGMA table_info(messages)').all().map((column)=>column.name));
+  for(const [name,definition] of Object.entries({image_prompt:'TEXT',image_sha256:'TEXT'}))
+    if(!messageColumns.has(name)) db.exec(`ALTER TABLE messages ADD COLUMN ${name} ${definition}`);
+  const reportColumns=new Set(db.prepare('PRAGMA table_info(reports)').all().map((column)=>column.name));
+  if(!reportColumns.has('status')) db.exec("ALTER TABLE reports ADD COLUMN status TEXT NOT NULL DEFAULT 'open'");
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings(key,value,updated_at) VALUES(?,?,?)');
   const now = new Date().toISOString();
   for (const [key,value] of Object.entries({speedMultiplier:1,maxActivePersonas:10,harassmentMode:false,usShare:60,minAge:16,maxAge:30}))

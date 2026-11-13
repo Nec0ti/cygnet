@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { openStore, HUMAN_ID, DATA_ROOT, logEvent, saveSystemFile, transaction, readSettings, writeSettings, rememberPersona } from './store.js';
 import { seedStore, resetSeedStore } from './seed.js';
 import { Simulator } from './simulator.js';
+import { visibleStoriesFor } from './visibility.js';
 import { existingMedia as resolveExistingMedia } from './media.js';
 import { connectFriends } from './friend-hook.js';
 import { buildReport, reportCsv } from './report.js';
@@ -44,11 +45,13 @@ function accountView(row, counts = null) {
     isHuman: Boolean(row.is_human), tone: row.tone,
     traits: JSON.parse(row.traits_json || '{}'),
     avatarUrl: row.avatar_filename ? `/media/${encodeURIComponent(row.avatar_filename)}` : null,
+    isPaused: Boolean(row.is_paused),
     followers: counts ? counts.followers.get(row.id) || 0 : DB.prepare("SELECT count(*) AS n FROM edges WHERE target_id=? AND kind='follow'").get(row.id).n,
     following: counts ? counts.following.get(row.id) || 0 : DB.prepare("SELECT count(*) AS n FROM edges WHERE source_id=? AND kind='follow'").get(row.id).n,
   };
   if (!account.isHuman) {
     account.systemMd = row.system_md;
+    account.extraNotes=row.extra_notes;
     account.friends = DB.prepare(`SELECT a.username FROM edges e JOIN accounts a ON a.id=e.target_id
       WHERE e.source_id=? AND e.kind='friend' ORDER BY a.username`).all(row.id).map((x) => x.username);
   }
@@ -83,7 +86,7 @@ function bootstrap() {
       blockedByMe: Boolean(DB.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id=? AND kind='block'").get(HUMAN_ID, row.id)),
     }));
   const posts = DB.prepare("SELECT * FROM posts WHERE kind='post' ORDER BY created_at DESC LIMIT 120").all().map(postView);
-  const stories = DB.prepare("SELECT * FROM posts WHERE kind='story' AND (expires_at IS NULL OR expires_at>?) ORDER BY created_at DESC").all(isoNow()).map(postView);
+  const stories = visibleStoriesFor(DB,HUMAN_ID,isoNow()).map(postView);
   const notifications = DB.prepare(`SELECT n.*, a.username, a.name FROM notifications n
     JOIN accounts a ON a.id=n.actor_id WHERE n.account_id=? ORDER BY n.created_at DESC LIMIT 100`).all(HUMAN_ID)
     .map((n) => ({ id:n.id, actorId:n.actor_id, username:n.username, name:n.name,
@@ -194,11 +197,16 @@ export function action({ type, payload = {} }) {
         const author = accountId(payload.accountId || payload.actorId || HUMAN_ID);
         const caption = requireText(payload.caption ?? '', 'caption', 5000, true);
         const filename = payload.mediaFilename ? existingMedia(payload.mediaFilename) : mediaFile(payload.media);
+        const imagePrompt=payload.imagePrompt===undefined?null:requireText(payload.imagePrompt,'imagePrompt',2000);
+        const imageCategory=payload.imageCategory===undefined?null:requireText(payload.imageCategory,'imageCategory',80);
+        const imageSha256=payload.imageSha256===undefined?null:requireText(payload.imageSha256,'imageSha256',64);
+        if(imageSha256&&!/^[a-f0-9]{64}$/.test(imageSha256)) throw Object.assign(new Error('Invalid generated image fingerprint'),{status:400});
+        if(imageSha256&&DB.prepare('SELECT 1 FROM posts WHERE image_sha256=? UNION SELECT 1 FROM messages WHERE image_sha256=?').get(imageSha256,imageSha256)) throw Object.assign(new Error('Duplicate generated image rejected'),{status:409});
         const kind = type === 'story.create' ? 'story' : 'post';
         const postId = id(); const createdAt=isoNow();
-        DB.prepare('INSERT INTO posts(id,account_id,caption,media_filename,kind,created_at,expires_at) VALUES(?,?,?,?,?,?,?)')
-          .run(postId,author,caption,filename,kind,createdAt,kind==='story'?new Date(Date.now()+86400000).toISOString():null);
-        logEvent(DB,author,type,{postId,hasMedia:Boolean(filename)});
+        DB.prepare(`INSERT INTO posts(id,account_id,caption,media_filename,image_prompt,image_category,image_sha256,kind,created_at,expires_at)
+          VALUES(?,?,?,?,?,?,?,?,?,?)`).run(postId,author,caption,filename,imagePrompt,imageCategory,imageSha256,kind,createdAt,kind==='story'?new Date(Date.now()+86400000).toISOString():null);
+        logEvent(DB,author,type,{postId,hasMedia:Boolean(filename),imageCategory,generatedImage:Boolean(imageSha256)});
         result = { id:postId };
         break;
       }
@@ -259,7 +267,11 @@ export function action({ type, payload = {} }) {
         }
         if(blockedBetween(sender,recipient)) throw Object.assign(new Error('This conversation is blocked'),{status:403});
         const content=requireText(payload.content ?? '', 'content', 5000, true);
-        const filename=mediaFile(payload.media);
+        const filename=payload.mediaFilename?existingMedia(payload.mediaFilename):mediaFile(payload.media);
+        const imagePrompt=payload.imagePrompt===undefined?null:requireText(payload.imagePrompt,'imagePrompt',2000);
+        const imageSha256=payload.imageSha256===undefined?null:requireText(payload.imageSha256,'imageSha256',64);
+        if(imageSha256&&!/^[a-f0-9]{64}$/.test(imageSha256)) throw Object.assign(new Error('Invalid generated image fingerprint'),{status:400});
+        if(imageSha256&&(DB.prepare('SELECT 1 FROM posts WHERE image_sha256=? UNION SELECT 1 FROM messages WHERE image_sha256=?').get(imageSha256,imageSha256))) throw Object.assign(new Error('Duplicate generated image rejected'),{status:409});
         if(!content && !filename) throw Object.assign(new Error('Message needs text or an image'),{status:400});
         if(!convoId) {
           convoId=id(); DB.prepare('INSERT INTO conversations VALUES(?,?)').run(convoId,isoNow());
@@ -267,8 +279,8 @@ export function action({ type, payload = {} }) {
           DB.prepare('INSERT INTO conversation_members VALUES(?,?)').run(convoId,recipient);
         }
         const msgId=id();
-        DB.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,media_filename,created_at) VALUES(?,?,?,?,?,?)')
-          .run(msgId,convoId,sender,content,filename,isoNow());
+        DB.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,media_filename,image_prompt,image_sha256,created_at) VALUES(?,?,?,?,?,?,?,?)')
+          .run(msgId,convoId,sender,content,filename,imagePrompt,imageSha256,isoNow());
         notify(recipient,sender,'message',msgId); logEvent(DB,sender,'message.sent',{conversationId:convoId,messageId:msgId,hasMedia:Boolean(filename)});
         DB.prepare('UPDATE accounts SET last_contact_at=?,retry_at=NULL WHERE id=? AND is_human=0').run(isoNow(),recipient);
         for(const personId of [sender,recipient]) if(!accountStmt.get(personId).is_human) {
@@ -301,7 +313,7 @@ export function action({ type, payload = {} }) {
         requireText(payload.targetId,'targetId',100);
         const reason=requireText(payload.reason,'reason',1000);
         const reportId=id();
-        DB.prepare('INSERT INTO reports VALUES(?,?,?,?,?,?)').run(reportId,HUMAN_ID,targetType,payload.targetId,reason,isoNow());
+        DB.prepare('INSERT INTO reports(id,reporter_id,target_type,target_id,reason,created_at) VALUES(?,?,?,?,?,?)').run(reportId,HUMAN_ID,targetType,payload.targetId,reason,isoNow());
         logEvent(DB,HUMAN_ID,'report.created',{reportId,targetType,targetId:payload.targetId}); result={id:reportId}; break;
       }
       case 'notification.read': {
@@ -313,12 +325,13 @@ export function action({ type, payload = {} }) {
         const row=accountStmt.get(target);
         if(row.is_human) throw Object.assign(new Error('Human profile has no persona system file'),{status:400});
         const patch=payload.patch || {};
-        for(const key of Object.keys(patch)) if(!['tone','traits','extraNotes','friends'].includes(key)) throw Object.assign(new Error(`Cannot update ${key}`),{status:400});
+        for(const key of Object.keys(patch)) if(!['tone','traits','extraNotes','friends','isPaused'].includes(key)) throw Object.assign(new Error(`Cannot update ${key}`),{status:400});
         const tone=patch.tone===undefined?row.tone:requireText(patch.tone,'tone',300);
         const notes=patch.extraNotes===undefined?row.extra_notes:requireText(patch.extraNotes,'extraNotes',4000,true);
         const traits=patch.traits===undefined?JSON.parse(row.traits_json):patch.traits;
         if(!traits || typeof traits!=='object' || Array.isArray(traits) || Object.values(traits).some((n)=>!Number.isInteger(n)||n<0||n>100)) throw Object.assign(new Error('Traits must be integer values from 0 to 100'),{status:400});
-        DB.prepare('UPDATE accounts SET tone=?,traits_json=?,extra_notes=? WHERE id=?').run(tone,JSON.stringify(traits),notes,target);
+        if(patch.isPaused!==undefined&&typeof patch.isPaused!=='boolean') throw Object.assign(new Error('isPaused must be boolean'),{status:400});
+        DB.prepare('UPDATE accounts SET tone=?,traits_json=?,extra_notes=?,is_paused=coalesce(?,is_paused) WHERE id=?').run(tone,JSON.stringify(traits),notes,patch.isPaused===undefined?null:Number(patch.isPaused),target);
         if(patch.friends!==undefined) {
           if(!Array.isArray(patch.friends) || patch.friends.length>100) throw Object.assign(new Error('friends must be an array of usernames'),{status:400});
           DB.prepare("DELETE FROM edges WHERE source_id=? AND kind='friend'").run(target);
@@ -343,9 +356,10 @@ export function action({ type, payload = {} }) {
           throw Object.assign(new Error('Alternate username must be unique and use lowercase letters, numbers, dots, or underscores'),{status:400});
         const aliasId=`alt-${id()}`;
         const activity={postMode:'none',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'};
-        DB.prepare(`INSERT INTO accounts(id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,system_md,created_at,alias_of)
-          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(aliasId,name,username,bio,source.pronouns,source.age,source.country,0,source.tone,
-            source.traits_json,`${source.extra_notes}\nAlternate account created after block.`,JSON.stringify(activity),'',isoNow(),original);
+        const avatarFilename=payload.avatarFilename?existingMedia(payload.avatarFilename):null;
+        DB.prepare(`INSERT INTO accounts(id,name,username,bio,pronouns,age,country,is_human,tone,traits_json,extra_notes,activity_json,system_md,created_at,alias_of,avatar_filename)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(aliasId,name,username,bio,source.pronouns,source.age,source.country,0,source.tone,
+            source.traits_json,`${source.extra_notes}\nAlternate account created after block.`,JSON.stringify(activity),'',isoNow(),original,avatarFilename);
         makeSystemMd(aliasId);
         const conversationId=id(), messageId=id(), content=requireText(payload.content,'content',4000);
         DB.prepare('INSERT INTO conversations VALUES(?,?)').run(conversationId,isoNow());
@@ -410,6 +424,56 @@ const server=createServer(async (req,res)=>{
       }
       resetUsage(DB,SERVER_RUNTIME);
       return send(res,200,{ok:true},cors);
+    }
+    if(req.method==='GET' && url.pathname==='/api/admin') {
+      const personas=DB.prepare('SELECT * FROM accounts WHERE is_human=0 ORDER BY username').all().map((row)=>accountView(row));
+      const posts=DB.prepare(`SELECT p.*,a.username FROM posts p JOIN accounts a ON a.id=p.account_id ORDER BY p.created_at DESC LIMIT 100`).all().map((post)=>({...postView(post),username:post.username}));
+      const reports=DB.prepare(`SELECT r.*,a.username FROM reports r JOIN accounts a ON a.id=r.reporter_id ORDER BY r.created_at DESC LIMIT 100`).all();
+      const count=(sql)=>DB.prepare(sql).get().n;
+      return send(res,200,{
+        summary:{accounts:count('SELECT COUNT(*) AS n FROM accounts'),personas:count('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0'),paused:count('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND is_paused=1'),posts:count("SELECT COUNT(*) AS n FROM posts WHERE kind='post'"),stories:DB.prepare("SELECT COUNT(*) AS n FROM posts WHERE kind='story' AND (expires_at IS NULL OR expires_at>?)").get(isoNow()).n,conversations:count('SELECT COUNT(*) AS n FROM conversations'),messages:count('SELECT COUNT(*) AS n FROM messages'),openReports:count("SELECT COUNT(*) AS n FROM reports WHERE status='open'"),events:count('SELECT COUNT(*) AS n FROM events'),duplicateGeneratedImages:DB.prepare('SELECT (SELECT COUNT(*) FROM posts WHERE image_sha256 IS NOT NULL)+(SELECT COUNT(*) FROM messages WHERE image_sha256 IS NOT NULL)-(SELECT COUNT(DISTINCT image_sha256) FROM (SELECT image_sha256 FROM posts WHERE image_sha256 IS NOT NULL UNION ALL SELECT image_sha256 FROM messages WHERE image_sha256 IS NOT NULL)) AS n').get().n},
+        simulator:simulator.status,simulatorEnabled,usage:usageSummary(DB,SERVER_RUNTIME),personas,posts,
+        dmImages:DB.prepare(`SELECT m.id,m.sender_id,a.username,m.content,m.media_filename,m.image_prompt,m.created_at FROM messages m
+          JOIN accounts a ON a.id=m.sender_id WHERE m.image_sha256 IS NOT NULL ORDER BY m.created_at DESC LIMIT 50`).all(),
+        reports,photoCategories:DB.prepare('SELECT image_category AS category,COUNT(*) AS count FROM posts WHERE image_category IS NOT NULL GROUP BY image_category ORDER BY count DESC,category').all(),
+        events:DB.prepare('SELECT e.*,a.username FROM events e JOIN accounts a ON a.id=e.actor_id ORDER BY e.created_at DESC,e.id DESC LIMIT 40').all(),
+      },cors);
+    }
+    if(req.method==='POST' && url.pathname==='/api/admin/persona') {
+      const body=await parseBody(req);
+      const result=action({type:'persona.system.update',payload:{accountId:body.accountId,patch:body.patch}});
+      return send(res,200,{persona:accountView(accountStmt.get(body.accountId)),systemMd:result.systemMd},cors);
+    }
+    if(req.method==='POST' && url.pathname==='/api/admin/report') {
+      const body=await parseBody(req);
+      if(!['open','reviewed','dismissed'].includes(body.status)) throw Object.assign(new Error('Invalid report status'),{status:400});
+      if(!DB.prepare('UPDATE reports SET status=? WHERE id=?').run(body.status,body.reportId).changes) throw Object.assign(new Error('Report not found'),{status:404});
+      logEvent(DB,HUMAN_ID,'report.reviewed',{reportId:body.reportId,status:body.status});
+      return send(res,200,{ok:true},cors);
+    }
+    if(req.method==='POST' && url.pathname==='/api/admin/content/delete') {
+      const body=await parseBody(req),post=DB.prepare('SELECT * FROM posts WHERE id=?').get(body.postId);
+      if(!post) throw Object.assign(new Error('Content not found'),{status:404});
+      transaction(DB,()=>{
+        DB.prepare('DELETE FROM likes WHERE post_id=?').run(post.id);
+        DB.prepare('DELETE FROM comments WHERE post_id=?').run(post.id);
+        DB.prepare('DELETE FROM posts WHERE id=?').run(post.id);
+        logEvent(DB,HUMAN_ID,'content.deleted',{postId:post.id,kind:post.kind,accountId:post.account_id});
+      });
+      if(post.media_filename&&!DB.prepare('SELECT 1 FROM posts WHERE media_filename=? UNION SELECT 1 FROM messages WHERE media_filename=?').get(post.media_filename,post.media_filename)) {
+        try { unlinkSync(join(MEDIA_DIR,post.media_filename)); } catch { /* Orphan media can be removed later. */ }
+      }
+      return send(res,200,{ok:true},cors);
+    }
+    if(req.method==='POST' && url.pathname==='/api/simulator/control') {
+      const {command}=await parseBody(req);
+      if(command==='pause') { simulator.stop(); return send(res,200,simulator.status,cors); }
+      if(command==='resume') {
+        if(!simulatorEnabled) throw Object.assign(new Error('Simulator startup is disabled by CYGNET_DISABLE_SIMULATOR'),{status:409});
+        simulator.start(); return send(res,200,simulator.status,cors);
+      }
+      if(command==='tick') return send(res,200,await simulator.tick(),cors);
+      throw Object.assign(new Error('Unknown simulator command'),{status:400});
     }
     if(req.method==='GET' && url.pathname==='/api/bootstrap') return send(res,200,bootstrap(),cors);
     if(req.method==='GET' && url.pathname==='/api/simulator') return send(res,200,simulator.status,cors);

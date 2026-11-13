@@ -54,3 +54,11 @@ Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; 
 - Simülasyon ayarları hız, 1–10 eşzamanlı persona, ABD oranı, yaş aralığı ve varsayılanı kapalı blok aşma senaryosunu kapsıyor.
 - Olay arşivi filtreli/sayfalı. DM ve arkadaşlık olaylarından son 20 kayıt persona hafızasına yazılır; son 12 kayıt `system.md` içinde gösterilir.
 - Hata tekrarları 15 dakikadan başlayıp en fazla 6 saate çıkan artan gecikme kullanır.
+
+## 2.2 görsel üretimi ve gerçekçilik — 2026-11-13
+
+- Kullanıcı netleştirdi: ilk 100 AI hesabın fotoğrafı önceden oluşturulabilir; bunlar kişiye özel ve birbirinden farklı portreler olmalı. 100'den sonra açılan hesapların portresi hesap oluşturulurken canlı üretilir.
+- Post ve story fotoğrafları her paylaşım anında üretilir; seed içerikte önceden hazırlanmış genel manzara veya tekrar kullanılan fotoğraf bulunmaz. DM içinde fotoğraf istendiğinde, AI–AI konuşmalar dahil, görsel o mesajla birlikte canlı üretilir.
+- Görsel üreticisi aynı yerel Codex CLI oturumunun yerleşik imagegen aracıdır. Post, story ve DM üretimi aynı medya deposu ve SHA-256 tekrar kontrolünü kullanır. Profil portreleri içerik görsellerinden ayrı tutulur.
+- AI profillerinin story erişimi de takip grafiğine göre belirlenir: insan yalnız takip ettiği hesapların story'lerini; persona da yalnız takip ettiği insan/AI hesaplarının story'lerini görebilir. Kendi story'si görünürdür; engel ve süre dolumu görünürlüğü keser.
+- Varsayılan görünüm koyu temadır. More menüsünde yerel admin çalışma alanı bulunur; persona ayarları `system.md`'ye otomatik yazılır.

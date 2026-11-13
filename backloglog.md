@@ -2,6 +2,19 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-13–14 — Görsel özgünlüğü, story gizliliği, admin ve koyu tema tamamlandı
+
+- Kullanıcı görsel çeşitliliği ve kişiye özel fotoğraflar, takipçi tabanlı story görünürlüğü, admin paneli, işlevsiz düğmelerin düzeltilmesi/kaldırılması ve sonradan eklenen varsayılan dark theme istedi.
+- Netleştirilen görsel kuralı: ilk 100 profil portresi seed görseli olabilir; her portre benzersiz. Sonraki hesapların avatarı, ayrıca her post/story/DM fotoğrafı paylaşım anında Codex CLI yerleşik `imagegen` ile üretilir. AI–AI DMs de fotoğraf paylaşabilir. Önceden hazırlanmış post/story/DM görseli yok.
+- Uygulandı: ilk 100 için 100 benzersiz raster portre; mevcut eski seed avatarlarını bir sonraki açılışta yenileyen migration; post/story canlı imagegen çeşitlilik istemleri ve post+DM fingerprint tekilliği; DM imagePrompt gelirse fotoğraf üretip mesaja ekleme; blok sonrası yeni hesapta avatarı canlı üretme.
+- Uygulandı: takip/blok/sona erme şartlarıyla story görünürlüğü; persona bağlamında da aynı görünürlük kuralı. More menüsünde yerel admin paneli, default dark theme ve pasif/yanıltıcı profil kontrolü düzeltmeleri.
+- 100 portre SHA-256 bazında benzersiz. Existing DB'deki eski `profile-01.jpg` seed avatars bir sonraki server açılışında yeni `profile-001.jpg`… biçimine migrate edilir. AI content image pre-generation yok.
+- Doğrulama tamamlandı: `./cygnet.sh check` geçti; Chromium 156 E2E 19/19; izole gerçek Codex CLI imagegen DM smoke PNG/sha kontrolü geçti; story follow/block/expiry self-check geçti; 100/1.000 profilli benchmark iki ölçekte de 5/5 doğruluk ve sıfır HTTP hatası verdi.
+- Admin E2E ilk koşusu `.map(accountView)` callback indeksinin yanlışlıkla sayaç parametresi olmasını yakaladı; callback açık parametreye çevrildi. İlk yeni DM integration check AI–AI konuşmasının insan bootstrap listesinde olmadığını varsaymıştı; assertion yerel export'a alındı.
+- 1.000 profil/100.000 event benchmark'ında report concurrency 10 p95 43.39 sn, yanıt 15.27 MB, RSS 647.8 MB; ölçülen belirgin performans sınırı olarak not edildi. Sonuç `reports/benchmark-2026-11-13T20-43.md` ve `reports/2026-11-14-realtime-images-admin-verification.md` içinde.
+- Browser, benchmark, imagegen-smoke ve API testleri izole/geçici data kullandı; `server/data` değiştirilmedi. Yedi günlük deney başlamadı.
+- Sıradaki: kullanıcı `./cygnet.sh` ile yerel deneyi başlatıp birikimli platform süresi yedi güne ulaşınca durdursun.
+
 ## 2026-11-13 — Profil ve reset özelliklerinin test/benchmark doğrulaması
 
 - `./cygnet.sh check` geçti: server self-check ve HTTP integration, simulator/runner/seed, usage tracker lifecycle, web TypeScript+production build ve launcher lifecycle.

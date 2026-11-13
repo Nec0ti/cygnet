@@ -96,8 +96,14 @@ try {
   assert.equal(initial.me.followers, 0);
   assert.equal(initial.me.following, 0);
   assert.ok(initial.accounts.every((account) => account.avatarUrl && account.followers === 0 && account.following === 0));
+  assert.equal(initial.stories.every((story) => story.accountId === 'human'), true, 'unfollowed AI stories must be private to their followers');
+  assert.equal(new Set(initial.accounts.map((account) => account.avatarUrl)).size, 100, 'the first 100 personas need distinct portraits');
   for (const account of initial.accounts) assert.equal((await fetch(`${apiUrl}${account.avatarUrl}`)).status, 200);
   check('fresh profiles have real zero follow counts and working raster avatars');
+  assert.match(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), /\d+/);
+  const darkBackground = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  assert.ok(darkBackground.split(',').slice(0,3).map((part)=>Number(part.replace(/\D/g,''))).every((channel)=>channel<80), `default theme should be dark: ${darkBackground}`);
+  check('default theme uses a dark, readable canvas');
   const aiPost = initial.posts.find((post) => post.accountId !== 'human');
   const feedPost = page.locator('.post-card').first();
   const likesBefore = Number((await feedPost.locator('.post-body b').first().innerText()).replaceAll(',', '').split(' ')[0]);
@@ -122,18 +128,23 @@ try {
   assert.equal((await fetch(`${apiUrl}${imagePost.mediaUrl}`)).status, 200);
   check('browser image upload creates a post and serves its media');
 
-  await page.locator('.story').filter({ hasText: 'Your story' }).click();
+  await page.locator('.story').first().click();
   const storyComposer = page.locator('.compose-modal');
   await storyComposer.locator('input[type=file]').setInputFiles(pngPath);
   await storyComposer.getByPlaceholder('Write a caption...').fill('Chromium image story');
   await storyComposer.getByRole('button', { name: 'Share' }).click();
   const story = await waitFor(async () => (await apiJson('/api/bootstrap')).value.stories.find((item) => item.caption === 'Chromium image story'), 'story saved');
   assert.ok(story.mediaUrl);
-  const firstOtherStory = initial.stories.find((item) => item.accountId !== 'human');
-  const firstOtherStoryAccount = initial.accounts.find((item) => item.id === firstOtherStory.accountId);
+  const firstOtherStory = (await apiJson('/api/export')).value.posts.find((item) => item.kind === 'story' && item.account_id !== 'human');
+  const firstOtherStoryAccount = initial.accounts.find((item) => item.id === firstOtherStory.account_id);
+  assert.equal((await action('follow.toggle', { actorId: 'human', targetId: firstOtherStory.account_id })).response.status, 200);
+  await waitFor(async () => (await apiJson('/api/bootstrap')).value.stories.some((item) => item.id === firstOtherStory.id), 'followed story visibility');
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('.story').filter({ hasText: firstOtherStoryAccount.username }).click();
   await page.getByRole('button', { name: 'Close story' }).click();
-  check('story image creation and another account story viewer work');
+  assert.equal((await action('follow.toggle', { actorId: 'human', targetId: firstOtherStory.account_id })).response.status, 200);
+  await waitFor(async () => !(await apiJson('/api/bootstrap')).value.stories.some((item) => item.id === firstOtherStory.id), 'unfollow hides story');
+  check('stories are visible only while following and can be opened in the viewer');
 
   await page.getByRole('button', { name: 'Profile' }).click();
   await page.getByRole('button', { name: 'Edit profile' }).click();
@@ -165,7 +176,7 @@ try {
   await waitFor(async () => (await apiJson('/api/export')).value.edges.some((edge) => edge.source_id === 'human' && edge.target_id === target.id && edge.kind === 'block'), 'block persisted');
   const blockedMessage = await action('message.send', { actorId: 'human', recipientId: target.id, content: 'Should be blocked' });
   assert.equal(blockedMessage.response.status, 403);
-  await page.getByRole('button', { name: 'Block' }).click();
+  await page.getByRole('button', { name: 'Unblock' }).click();
   await waitFor(async () => !(await apiJson('/api/export')).value.edges.some((edge) => edge.source_id === 'human' && edge.target_id === target.id && edge.kind === 'block'), 'unblock persisted');
   await page.getByRole('button', { name: 'Message', exact: true }).click();
   const chat = page.locator('.chat-panel');
@@ -215,6 +226,27 @@ try {
   await page.locator('.event-row').first().waitFor();
   assert.match(await page.locator('.event-row').first().innerText(), /message\.sent/);
   check('activity archive filters persisted events');
+
+  assert.equal((await action('report.create', { targetType: 'post', targetId: imagePost.id, reason: 'Admin review test' })).response.status, 200);
+  await page.getByRole('button', { name: 'More' }).click();
+  await page.getByRole('menuitem', { name: 'Admin workspace' }).click();
+  await page.getByRole('heading', { name: 'Admin workspace' }).waitFor();
+  await page.getByText('Personas').waitFor();
+  const adminPerson = page.locator('.admin-person').filter({ hasText: target.username });
+  await adminPerson.getByRole('button', { name: 'Pause' }).click();
+  await waitFor(async () => (await apiJson('/api/admin')).value.personas.find((person) => person.id === target.id)?.isPaused, 'admin persona pause');
+  await adminPerson.getByRole('button', { name: target.name }).click();
+  await page.getByLabel('Extra persona notes').fill('Saved from the admin workspace.');
+  await page.getByRole('button', { name: 'Save persona and system.md' }).click();
+  await waitFor(async () => (await apiJson('/api/admin')).value.personas.find((person) => person.id === target.id)?.extraNotes.includes('Saved from the admin workspace.'), 'admin system.md edit');
+  const reportSelect = page.locator('.admin-report').filter({ hasText: 'Admin review test' }).getByRole('combobox');
+  await reportSelect.selectOption('reviewed');
+  await waitFor(async () => (await apiJson('/api/admin')).value.reports.some((report) => report.reason === 'Admin review test' && report.status === 'reviewed'), 'admin report review');
+  page.once('dialog', (dialog) => dialog.accept());
+  const adminPost = page.locator('.admin-content').filter({ hasText: 'Chromium image post' });
+  await adminPost.getByRole('button', { name: 'Delete' }).click();
+  await waitFor(async () => !(await apiJson('/api/admin')).value.posts.some((post) => post.caption === 'Chromium image post'), 'admin post deletion');
+  check('admin workspace inspects metrics, edits personas, reviews reports, and deletes content');
 
   await page.getByRole('button', { name: 'More' }).click();
   await page.getByRole('menuitem', { name: 'Simulation settings' }).click();

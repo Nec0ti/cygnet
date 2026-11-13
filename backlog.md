@@ -2,12 +2,13 @@
 
 ## Durum özeti
 
-- Aşama: profil fotoğrafı, gerçek takip sayısı, More menüsü ve reset doğrulaması `698bcf0` sonrası tamamlandı
-- Son tamamlanan iş: `./cygnet.sh check` geçti; gerçek Chromium E2E 17/17; iki benchmark veri seti de correctness 5/5
-- Şu an yapılan iş: test ve benchmark raporlandı; yedi günlük deney başlamadı
+- Aşama: Cygnet 2.2 canlı görseller, takip tabanlı story gizliliği, admin alanı ve default dark theme tamamlandı
+- Son tamamlanan iş: `./cygnet.sh check` geçti; gerçek Chromium E2E 19/19; gerçek Codex imagegen DM smoke; benchmark correctness 5/5 (100/1.000 profil)
+- Şu an yapılan iş: bu sürüm raporlandı; yedi günlük deney başlamadı
 - Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
-- Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 44,01 sn; server RSS 718,8 MB. Ayrıntı `reports/benchmark-2026-11-13T19-59.md` içinde
+- Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 43,39 sn ve 15,27 MB yanıt; server RSS 647,8 MB. Ayrıntı `reports/benchmark-2026-11-13T20-43.md` içinde
+- Sonuç raporu: `reports/2026-11-14-realtime-images-admin-verification.md`
 
 ## İşler
 

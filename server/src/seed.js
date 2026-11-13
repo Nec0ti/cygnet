@@ -39,10 +39,10 @@ function scheduleTimes(profile, index = 0) {
 }
 
 function ensureProfileAvatar(db, profile, index, dataRoot = DATA_ROOT) {
-  if (profile.avatar_filename) return;
-  const filename=`profile-${String(index%20+1).padStart(2,'0')}.jpg`, mediaDir=join(dataRoot,'media');
+  if (profile.avatar_filename && !/^profile-\d{2}\.jpg$/.test(profile.avatar_filename)) return;
+  const filename=`profile-${String(index%100+1).padStart(3,'0')}.jpg`, mediaDir=join(dataRoot,'media');
   mkdirSync(mediaDir,{recursive:true});
-  const source=join(import.meta.dirname,'../assets/profile-avatars',`portrait-${String(index%20).padStart(2,'0')}.jpg`);
+  const source=join(import.meta.dirname,'../assets/profile-avatars',`portrait-${String(index%100).padStart(2,'0')}.jpg`);
   const target=join(mediaDir,filename);
   if(!existsSync(target)) copyFileSync(source,target);
   db.prepare('UPDATE accounts SET avatar_filename=? WHERE id=?').run(filename,profile.id);
