@@ -37,11 +37,13 @@
 
 - [x] Başlangıç dokümantasyonu ve ürün kararları
 - [x] Sürüm yol haritası
-- [ ] Özel GitHub deposu ve başlangıç commit'i
-- [ ] MVP uygulaması
+- [x] Özel GitHub deposu ve başlangıç commit'i
+- [x] MVP uygulaması
 - [x] Codex CLI yerleşik `imagegen` ile bir deneme görseli üretme ve görseli kontrol etme
-- [ ] Codex CLI text/imagegen iş akışını Cygnet uygulamasına bağlama; görsel dosyası yerel medya klasörüne taşınmalı
-- [ ] Uçtan uca yerel kullanım ve veri dışa aktarma
+- [x] Codex CLI text/imagegen iş akışını Cygnet uygulamasına bağlama; görsel dosyası yerel medya klasörüne taşınmalı
+- [x] Uçtan uca yerel kullanım talimatı ve veri dışa aktarma
+- [x] İzole veritabanında tam simülasyon smoke check'i: orkestratör, persona, imagegen, DB postu ve medya HTTP yanıtı
+- [ ] Son dokümantasyon commit/push
 - [ ] Deney raporu
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.

@@ -2,11 +2,11 @@
 
 ## Durum özeti
 
-- Aşama: MVP geliştirme
-- Son tamamlanan iş: ürün kararları, sürüm planı ve Codex CLI imagegen smoke check (2026-11-13)
-- Şu an yapılan iş: arayüz, sunucu ve ajan runtime'ı paralel hazırlanıyor
-- Sıradaki adım: MVP'yi uçtan uca tamamla, doğrula ve çalıştırma talimatlarını yaz
-- Yarım kalan işler: MVP uygulaması
+- Aşama: MVP doğrulama ve devir
+- Son tamamlanan iş: UI, yerel API/SQLite, Codex ajan runtime'ı, yerel imagegen entegrasyonu ve karşılıklı takip arkadaşlık hook'u (2026-11-13)
+- Şu an yapılan iş: MVP devir ve GitHub senkronizasyonu
+- Sıradaki adım: bu dokümantasyon güncellemesini main'e commit/push etmek
+- Yarım kalan işler: görsel tarayıcı E2E'si ve uzun süreli simülasyon henüz kontrol edilmedi
 
 ## İşler
 
@@ -22,9 +22,11 @@
 
 ### Devam ediyor / bekliyor
 
-- [ ] MVP: yerel arayüz, profil/feed/story, görsel postları, DM, bildirimler, takip/beğeni/yorum ve rapor kaydı.
-- [ ] 100 profillik ağ, `system.md`, 10 etkin persona + orkestratör ve Codex CLI text/imagegen işleri; imagegen dosya kopyalama entegrasyonu henüz tamamlanmadı.
-- [ ] Yerel çalıştırma, yedekleme/dışa aktarma ve deney raporu akışı.
+- [x] MVP: yerel arayüz, profil/feed/story, görsel postları, DM, bildirimler, takip/beğeni/yorum ve rapor kaydı.
+- [x] 100 profillik ağ, `system.md`, 10 etkin persona + orkestratör ve Codex CLI text/imagegen işleri.
+- [x] Yerel medya deposu ve üretilen görseli post/story'ye bağlama.
+- [x] Yerel çalıştırma, yedekleme/dışa aktarma ve deney raporu talimatları (`README.md`, `/api/export`).
+- [x] İzole DB'de tek persona postu ile orkestratör → persona → imagegen → API akışını doğrula; PNG medyası HTTP 200 ile döndü.
 
 ## Kayıt kuralı
 

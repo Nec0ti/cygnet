@@ -14,6 +14,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - Persona gönderileri, yorumları ve mesajları İngilizce olur.
 - Codex model kimliği `gpt-6-luna`; orkestratör reasoning effort `medium`, persona ajanları `low` olarak yapılandırılır.
 - Her AI kullanıcısının ayrı bir `system.md` kişilik tanımı olması isteniyor.
+- Karşılıklı takipte AI profillerinin arkadaşlık kenarları ve `system.md` dosyaları hook ile güncellenir.
 - Uygulama ve medya yerelde saklanır. Codex CLI'ye verilen istek ve bağlam OpenAI hizmetine gider.
 - Görseller Codex CLI yerleşik `imagegen` aracıyla üretilir; API key fallback kullanılmaz.
 - 18 yaş altı profiller için cinsel/erotik içerik, sexting ve cinsel görsel üretimi kapalıdır; yaşa uygun ilişki ve sağlık konuşmaları cinselleştirmeden yapılabilir. Yetişkin-minör cinsel etkileşimi engellenir.
