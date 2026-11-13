@@ -289,9 +289,13 @@ export function action({ type, payload = {} }) {
         notify(recipient,sender,'message',msgId); logEvent(DB,sender,'message.sent',{conversationId:convoId,messageId:msgId,hasMedia:Boolean(filename)});
         const recipientAccount=accountStmt.get(recipient);
         if(!recipientAccount.is_human) {
+          const contactedAt=isoNow(),now=isoNow();
+          const readDue=new Date(Date.now()+personaReplyDelayMs(recipientAccount,3)).toISOString();
           const replyDue=new Date(Date.now()+personaReplyDelayMs(recipientAccount)).toISOString();
           DB.prepare(`UPDATE accounts SET last_contact_at=?,retry_at=NULL,seen_due_at=NULL,
-            dm_due_at=CASE WHEN dm_due_at IS NULL OR dm_due_at<=? OR dm_due_at>? THEN ? ELSE dm_due_at END WHERE id=?`).run(isoNow(),isoNow(),replyDue,replyDue,recipient);
+            read_due_at=CASE WHEN read_due_at IS NULL OR read_due_at<=? OR read_due_at>? THEN ? ELSE read_due_at END,
+            dm_due_at=CASE WHEN dm_due_at IS NULL OR dm_due_at<=? OR dm_due_at>? THEN ? ELSE dm_due_at END WHERE id=?`)
+            .run(contactedAt,now,readDue,readDue,now,replyDue,replyDue,recipient);
         }
         for(const personId of [sender,recipient]) if(!accountStmt.get(personId).is_human) {
           const other=personId===sender?recipient:sender;

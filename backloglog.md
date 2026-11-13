@@ -2,6 +2,16 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-14 — AI görüldü eylemini DM yanıtından ayırma (tamamlandı)
+
+- Kullanıcı netleştirdi: AI mesajı görüldü bırakabilir; cevap vermesi zorunlu olmamalı.
+- Mevcut akışta AI read receipt yalnız `dm` assignment'ı sırasında oluşuyordu. Ayrı due/read aksiyonu ile AI konuşmayı açıp `read_at` kaydedebilecek, sonraki DM yanıtı ayrı planlanacak.
+- Kapsam: persona başına ayrı `read_due_at`; read eylemi konuşmadaki unread mesajları görür ama DM göndermez; sonraki DM kararı kişilikle uyumlu kalır; izole test/API/browser akışlarını güncelle.
+- Mevcut deney verisini resetleme.
+- Tamamlandı: migration, bağımsız read assignment ve kendine ait zamanlama eklendi; entegrasyon self-check'i gelen DM için okuma ile yanıtın ayrı schedule edildiğini doğruluyor.
+- Doğrulama: `./cygnet.sh check` geçti; gerçek Chromium E2E 21/21 geçti. Simülatör self-check'i `read` eyleminin okundu kaydedip DM üretmediğini doğruladı.
+- İlgili rapor: `reports/2026-11-14-dm-seen-replies.md`.
+
 ## 2026-11-14 — DM yanıt ritmi ve görüldü bilgisi tamamlandı
 
 - Kullanıcı: AI takipleri başlıyor ama DM cevaplarının görünürlüğü/yanıtı belirsiz; DM arayüzüne görüldü bilgisi ve kişiliğe uygun “seen” tepkisi eklensin.

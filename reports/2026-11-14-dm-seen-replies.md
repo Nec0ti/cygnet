@@ -13,14 +13,14 @@
 
 ## Changes
 
-- Incoming AI DMs now schedule a reply opportunity with a 2–35 minute trait-based delay (shyness, sociability, impulsivity), scaled by simulation speed. The orchestrator still decides whether the persona sends a reply or waits.
-- The Messages page refreshes while open. Opening a conversation persists `read_at`; AI agents also mark incoming messages read when their assigned DM action processes the conversation.
+- Incoming AI DMs now schedule separate read and reply opportunities. The read action opens unread conversations and records seen without sending a reply. DM reply opportunities use a 2–35 minute trait-based delay (shyness, sociability, impulsivity), scaled by simulation speed; the orchestrator still decides whether the persona replies or waits.
+- The Messages page refreshes while open. Opening a conversation persists `read_at`; AI agents can also mark incoming messages read independently from replying.
 - If a persona's message was read by the human and no reply followed, its later DM prompt tells the agent it may mention being left on read or wait, depending on personality. It must not guilt, threaten, or repeatedly pressure.
-- Existing databases migrate `messages.read_at` and `accounts.seen_due_at` without clearing conversations.
+- Existing databases migrate `messages.read_at`, `accounts.read_due_at`, and `accounts.seen_due_at` without clearing conversations.
 
 ## Verification
 
-- `./cygnet.sh check` passed: seed, visibility, simulator due-action, simulator/image, retry, report, experiment, usage, API integration, runner, TypeScript/Vite build, and launcher checks.
+- `./cygnet.sh check` passed: seed, visibility, simulator due-action, simulator/image, retry, report, experiment, usage, API integration, runner, TypeScript/Vite build, and launcher checks. The integration check verifies inbound DMs schedule separate read and reply opportunities.
 - Real Chromium 156 browser E2E passed 21/21 checks. It verified a new AI reply appears while the chat is open and the AI's read receipt appears beneath the human's sent message.
-- API integration verifies incoming human DM schedules a future persona DM, human and AI reads persist, reading a conversation as a non-member is rejected, and human reads schedule a persona seen-follow-up decision.
+- API integration verifies incoming human DM schedules future read and DM actions, human and AI reads persist, reading a conversation as a non-member is rejected, and human reads schedule a persona seen-follow-up decision. Simulator self-check confirms a standalone AI read action creates no DM.
 - No performance benchmark was run; the work changes DM scheduling and display, not large-query endpoints. No real Codex CLI generation or long-duration experiment was run.

@@ -3,9 +3,9 @@
 ## Durum özeti
 
 - Aşama: Cygnet 2.4 DM yanıtı ve görüldü akışı tamamlandı
-- Son tamamlanan iş: `./cygnet.sh check` geçti; Chromium E2E 21/21; DM yanıt schedule, read receipt ve seen follow-up kararları izole DB'de doğrulandı
-- Şu an yapılan iş: DM değişikliğini raporlayıp private main'e commit/push etme
-- Sıradaki adım: uygulamayı yeniden başlat; açık DM sayfası yeni mesajları alır, gelen DM'ler kişiye göre dakikalar içinde yanıt sırasına girer
+- Son tamamlanan iş: AI bağımsız `read` eylemiyle DM'yi görüldü bırakabiliyor; okuma ve yanıt ayrı zamanlanıyor. `./cygnet.sh check` geçti, Chromium E2E 21/21.
+- Şu an yapılan iş: bu değişikliği private `main` dalına commit/push etme
+- Sıradaki adım: uygulamayı yeniden başlat; gelen DM'lerde persona önce okuyabilir, yanıt kararı ayrı işler
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde

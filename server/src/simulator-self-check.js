@@ -8,6 +8,7 @@ assert.deepEqual(dueActions(shy,Date.parse(time)),['story']);
 assert.ok(dueActions({...shy,last_contact_at:time,dm_due_at:time},Date.parse(time)).includes('dm'));
 assert.ok(!dueActions({...shy,last_contact_at:time,last_dm_at:time,dm_due_at:time},Date.parse(time)).includes('dm'));
 assert.deepEqual(dueActions({...shy,post_due_at:null,story_due_at:null,seen_due_at:time},Date.parse(time)),['dm']);
+assert.deepEqual(dueActions({...shy,post_due_at:null,story_due_at:null,read_due_at:time},Date.parse(time)),['read']);
 assert.ok(!dueActions({...shy,last_contact_at:time,dm_due_at:new Date(Date.parse(time)+60_000).toISOString()},Date.parse(time)).includes('dm'));
 assert.ok(dueActions({...shy,last_contact_at:time,dm_due_at:time},Date.parse(time)).includes('dm'));
 assert.ok(dueActions({...shy,evade_due_at:time},Date.parse(time)).includes('evade_block'));

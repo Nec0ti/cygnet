@@ -20,7 +20,7 @@ export function openStore(path = DB_PATH) {
       tone TEXT NOT NULL DEFAULT '', traits_json TEXT NOT NULL DEFAULT '{}',
       extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
       post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
-      last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT, seen_due_at TEXT,
+      last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT, read_due_at TEXT, seen_due_at TEXT,
       retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', avatar_filename TEXT, is_paused INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       alias_of TEXT REFERENCES accounts(id), evade_due_at TEXT, retry_count INTEGER NOT NULL DEFAULT 0, retry_error TEXT
@@ -82,7 +82,7 @@ export function openStore(path = DB_PATH) {
   for (const [name, definition] of Object.entries({
     activity_json: "TEXT NOT NULL DEFAULT '{}'", post_due_at: 'TEXT', story_due_at: 'TEXT',
     dm_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
-    last_dm_at: 'TEXT', last_contact_at: 'TEXT', seen_due_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
+    last_dm_at: 'TEXT', last_contact_at: 'TEXT', read_due_at: 'TEXT', seen_due_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
     evade_due_at: 'TEXT', retry_count: 'INTEGER NOT NULL DEFAULT 0', retry_error: 'TEXT',
     avatar_filename: 'TEXT',
     is_paused: 'INTEGER NOT NULL DEFAULT 0',

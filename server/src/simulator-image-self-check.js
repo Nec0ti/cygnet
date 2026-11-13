@@ -54,9 +54,20 @@ try {
   assert.equal(applied[4].type,'story.create');
   assert.equal(applied[4].payload.caption,'Live story from the persona.');
   assert.match(applied[4].payload.mediaFilename,/\.png$/);
+  const conversationId='read-only-conversation';
+  db.prepare('INSERT INTO conversations VALUES(?,?)').run(conversationId,due);
+  db.prepare('INSERT INTO conversation_members VALUES(?,?)').run(conversationId,'human');
+  db.prepare('INSERT INTO conversation_members VALUES(?,?)').run(conversationId,'u0001');
+  db.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,created_at) VALUES(?,?,?,?,?)').run('unread-message',conversationId,'human','A message that may be read without a reply.',due);
+  nextKind='read';
+  db.prepare("UPDATE accounts SET story_due_at=NULL,read_due_at=?,post_due_at=NULL,dm_due_at=NULL WHERE id='u0001'").run(new Date().toISOString());
+  assert.equal((await simulator.tick()).processed,1);
+  assert.equal(applied[5].type,'message.read','a standalone read decision must not send a DM');
+  assert.equal(applied[5].payload.conversationId,conversationId);
+  assert.equal(db.prepare("SELECT read_due_at FROM accounts WHERE id='u0001'").get().read_due_at,null);
   assert.equal(generated,5);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,0,'seed and mocked action path never store canned content');
-  console.log('Realtime image generation self-check passed for live persona posts, stories, both DM directions, and a later-created profile.');
+  console.log('Realtime image generation self-check passed for live persona posts/stories and DMs; standalone persona read receipts do not require a reply.');
 } finally {
   db.close();
   rmSync(temp,{recursive:true,force:true});

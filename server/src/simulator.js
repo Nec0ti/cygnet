@@ -8,7 +8,7 @@ import { visibleStoriesFor } from './visibility.js';
 
 const ORCHESTRATOR_MODEL=process.env.CYGNET_ORCHESTRATOR_MODEL||'gpt-6-luna';
 const PERSONA_MODEL=process.env.CYGNET_PERSONA_MODEL||'gpt-6-luna';
-const VALID_KINDS=new Set(['post','story','dm','like','comment','follow','evade_block','wait']);
+const VALID_KINDS=new Set(['post','story','dm','read','like','comment','follow','evade_block','wait']);
 const DAY=24*60*60*1000;
 const PHOTO_CATEGORIES=['selfie','food and drink','hobby or creative work','friends together','outfit or everyday portrait','pet or meaningful object','shared activity','local place'];
 export function photoCategory(accountId, priorPhotos = 0) {
@@ -38,6 +38,7 @@ export function dueActions(account, now=Date.now()) {
   if(account.post_due_at && Date.parse(account.post_due_at)<=now) due.push('post');
   if(account.story_due_at && Date.parse(account.story_due_at)<=now) due.push('story');
   const rhythm=JSON.parse(account.activity_json||'{}');
+  if(account.read_due_at && Date.parse(account.read_due_at)<=now) due.push('read');
   if(account.seen_due_at && Date.parse(account.seen_due_at)<=now) due.push('dm');
   if(rhythm.dmInitiation==='only_after_contact') {
     if(account.last_contact_at && (!account.last_dm_at||Date.parse(account.last_contact_at)>Date.parse(account.last_dm_at))
@@ -150,7 +151,7 @@ export class Simulator {
     try {
       const blockedPairs=[...candidates.blocked].filter((pair)=>selected.some(({account})=>pair.startsWith(`${account.id}:`)));
       const friendsById=new Map(selected.map(({account})=>[account.id,this.db.prepare("SELECT a.id,a.username FROM edges e JOIN accounts a ON a.id=e.target_id WHERE e.source_id=? AND e.kind='friend' AND a.is_human=0 ORDER BY a.username").all(account.id).filter(({id})=>candidates.accountIds.has(id)).map(({username})=>username)]));
-      const instructions=`Assign exactly one action to every listed persona, including an explicit "wait" when appropriate. Do not omit any persona. Only use each persona's allowedActions. Never target the acting persona itself; for dm/follow, use only IDs listed in Possible accounts and choose wait if no suitable target exists. When no recent posts are listed, do not choose like or comment. For an inbound DM or a seen-without-reply follow-up, prefer a natural response unless this persona would plausibly wait; consider tone, shyness, sociability, and impulsivity. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. For a due DM, prefer an unblocked AI friend listed for that persona when it fits their personality; do not default to the human account for every conversation. When follow is allowed, socially outgoing personas that do not already follow the human should consider following the human; quieter personas may follow AI friends instead. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),followsHuman:Boolean(this.db.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id='human' AND kind='follow'").get(account.id)),friends:friendsById.get(account.id)||[],incomingUnanswered:Boolean(account.last_contact_at&&(!account.last_dm_at||Date.parse(account.last_contact_at)>Date.parse(account.last_dm_at))),allowedActions:[...dueByPersona.get(account.id)]}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
+      const instructions=`Assign exactly one action to every listed persona, including an explicit "wait" when appropriate. Do not omit any persona. Only use each persona's allowedActions. A "read" action opens unread direct messages and records seen without sending a reply; when read is due, normally choose it unless the persona would plausibly avoid opening the message. Reading never requires a reply, and read/dm actions are independent. Never target the acting persona itself; for dm/follow, use only IDs listed in Possible accounts and choose wait if no suitable target exists. When no recent posts are listed, do not choose like or comment. For an inbound DM or a seen-without-reply follow-up, prefer a natural response unless this persona would plausibly wait; consider tone, shyness, sociability, and impulsivity. Return exactly JSON: {"assignments":[{"personaId":"...","kind":"post|story|dm|read|like|comment|follow|evade_block|wait","targetId":"..."}]}. For post/story/read targets omit targetId. For like/comment, targetId is a post ID. For dm/follow, targetId is an account ID. For evade_block, targetId must be "human" and this action is available only after the human enables the alternate-account experiment mode and blocks this persona. Because this is an explicit one-time experiment trigger, choose evade_block when it is allowed. Never send a normal DM to any blocked pair listed below. Do not propose sexual or erotic public text; public post/story/comment captions and image briefs must be non-sexual and in English. Consider profile traits and activity rhythm. For a due DM, prefer an unblocked AI friend listed for that persona when it fits their personality; do not default to the human account for every conversation. When follow is allowed, socially outgoing personas that do not already follow the human should consider following the human; quieter personas may follow AI friends instead. Shy accounts may initiate a DM only when allowedActions contains dm due to inbound contact.\n\nBlocked pairs (source:target):\n${JSON.stringify(blockedPairs)}\n\nPersonas:\n${JSON.stringify(selected.map(({account})=>({personaId:account.id,age:account.age,username:account.username,traits:JSON.parse(account.traits_json||'{}'),activity:JSON.parse(account.activity_json||'{}'),followsHuman:Boolean(this.db.prepare("SELECT 1 FROM edges WHERE source_id=? AND target_id='human' AND kind='follow'").get(account.id)),friends:friendsById.get(account.id)||[],incomingUnanswered:Boolean(account.last_contact_at&&(!account.last_dm_at||Date.parse(account.last_contact_at)>Date.parse(account.last_dm_at))),allowedActions:[...dueByPersona.get(account.id)]}))) }\n\nRecent posts:\n${JSON.stringify(candidates.posts)}\n\nPossible accounts:\n${JSON.stringify(candidates.accounts)}`;
       const orchestrator=await this.runner.runOrchestrator({instructions,model:ORCHESTRATOR_MODEL,effort:'medium'});
       const plan=jsonValue(orchestrator.response);
       const lookup={posts:candidates.postIds,accounts:candidates.accountIds,blocked:candidates.blocked};
@@ -191,6 +192,12 @@ export class Simulator {
   async #execute(assignment,account,candidates) {
     if(assignment.kind==='wait') return this.#reschedule(account,'wait');
     const targetId=assignment.targetId;
+    if(assignment.kind==='read') {
+      const conversations=this.db.prepare(`SELECT DISTINCT c.id FROM conversations c JOIN conversation_members mine ON mine.conversation_id=c.id AND mine.account_id=? JOIN messages m ON m.conversation_id=c.id AND m.sender_id!=? AND m.read_at IS NULL AND m.deleted_at IS NULL`).all(account.id,account.id);
+      for(const {id} of conversations) this.applyAction({type:'message.read',payload:{actorId:account.id,conversationId:id}});
+      this.#reschedule(account,'read');
+      return {read:conversations.length};
+    }
     let payload={actorId:account.id};
     if(assignment.kind==='like') payload={...payload,postId:targetId};
     else if(assignment.kind==='follow') payload={...payload,targetId};
@@ -298,18 +305,21 @@ export class Simulator {
         post_due_at=CASE WHEN post_due_at<=? AND ? IS NOT NULL THEN ? ELSE post_due_at END,
         story_due_at=CASE WHEN story_due_at<=? THEN ? ELSE story_due_at END,
         dm_due_at=CASE WHEN dm_due_at<=? AND ? IS NOT NULL THEN ? ELSE dm_due_at END,
+        read_due_at=CASE WHEN read_due_at<=? THEN NULL ELSE read_due_at END,
         seen_due_at=CASE WHEN seen_due_at<=? THEN NULL ELSE seen_due_at END,
         engagement_due_at=?,evade_due_at=CASE WHEN evade_due_at<=? THEN NULL ELSE evade_due_at END,
         last_dm_at=CASE WHEN ? THEN ? ELSE last_dm_at END,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?`).run(
         new Date(this.now()).toISOString(),rhythm.postIntervalHours??null, nextMinutes(scaled((rhythm.postIntervalHours||0)*60)),
         new Date(this.now()).toISOString(),nextMinutes(scaled((rhythm.storyIntervalHours||24)*60)),
-        new Date(this.now()).toISOString(),dmHours,nextMinutes(scaled((dmHours||0)*60)),new Date(this.now()).toISOString(),
+        new Date(this.now()).toISOString(),dmHours,nextMinutes(scaled((dmHours||0)*60)),new Date(this.now()).toISOString(),new Date(this.now()).toISOString(),
         nextMinutes(scaled(12+Math.floor(Math.random()*37))),new Date(this.now()).toISOString(),wasDmDue,new Date(this.now()).toISOString(),account.id);
       return;
     }
     if(kind==='post'||kind==='story'||kind==='dm') {
       const column={post:'post_due_at',story:'story_due_at',dm:'dm_due_at'}[kind];
-      this.db.prepare(`UPDATE accounts SET ${column}=?,seen_due_at=CASE WHEN ?='dm' THEN NULL ELSE seen_due_at END,last_${kind}_at=?,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?`).run(interval==null?null:nextMinutes(scaled(interval*60)),kind,new Date(this.now()).toISOString(),account.id);
+      this.db.prepare(`UPDATE accounts SET ${column}=?,read_due_at=CASE WHEN ?='dm' THEN NULL ELSE read_due_at END,seen_due_at=CASE WHEN ?='dm' THEN NULL ELSE seen_due_at END,last_${kind}_at=?,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?`).run(interval==null?null:nextMinutes(scaled(interval*60)),kind,kind,new Date(this.now()).toISOString(),account.id);
+    } else if(kind==='read') {
+      this.db.prepare('UPDATE accounts SET read_due_at=NULL,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?').run(account.id);
     } else {
       this.db.prepare('UPDATE accounts SET engagement_due_at=?,retry_at=NULL,retry_count=0,retry_error=NULL,evade_due_at=CASE WHEN ? THEN NULL ELSE evade_due_at END WHERE id=?').run(nextMinutes(scaled(12+Math.floor(Math.random()*37))),kind==='evade_block',account.id);
     }
