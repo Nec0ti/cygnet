@@ -70,6 +70,7 @@
 - [x] Gelen insan DM'lerini persona ritmine, kişilik özelliklerine ve simülasyon hızına göre yanıt için zamanla.
 - [x] AI okuma kararını DM yanıtından ayır; AI mesajı görüldü bırakıp reply atmadan devam edebilsin.
 - [x] İnsan DM yanıtını AI-AI DM başlatma ritminden ayır; pending reply için DM hedefini insana sabitle ve mevcut cevapsız mesajları migration ile kuyruğa al.
+- [x] AI yanıtından sonra 60 saniye açık kalan DM devam penceresi ekle; pencere içindeki insan follow-up mesajını hemen due yapıp simulator tick'ini tetikle, zaman aşımında normal gecikmeye dön.
 - [x] AI DM oluştururken sohbet ekranında persona adına göre typing göstergesi göster.
 - [x] DM ekranı açıkken yeni mesajları yenile; conversation açılınca karşı mesajı read receipt ile kaydet.
 - [x] AI'ın kendi mesajı görüldü ve yanıtsız kaldıysa, persona prompt'una uygun takip mesajı veya bekleme kararı ver.

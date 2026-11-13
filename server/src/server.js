@@ -291,8 +291,9 @@ export function action({ type, payload = {} }) {
         const recipientAccount=accountStmt.get(recipient);
         if(!recipientAccount.is_human) {
           const contactedAt=isoNow(),now=isoNow();
-          const readDue=new Date(Date.now()+personaReplyDelayMs(recipientAccount,3)).toISOString();
-          const replyDue=new Date(Date.now()+personaReplyDelayMs(recipientAccount)).toISOString();
+          const fastContinuation=sender===HUMAN_ID&&Date.parse(recipientAccount.human_chat_until||'')>Date.now();
+          const readDue=fastContinuation?now:new Date(Date.now()+personaReplyDelayMs(recipientAccount,3)).toISOString();
+          const replyDue=fastContinuation?now:new Date(Date.now()+personaReplyDelayMs(recipientAccount)).toISOString();
           DB.prepare(`UPDATE accounts SET last_contact_at=?,retry_at=NULL,seen_due_at=NULL,
             read_due_at=CASE WHEN read_due_at IS NULL OR read_due_at<=? OR read_due_at>? THEN ? ELSE read_due_at END,
             dm_due_at=CASE WHEN dm_due_at IS NULL OR dm_due_at<=? OR dm_due_at>? THEN ? ELSE dm_due_at END WHERE id=?`)
@@ -300,8 +301,10 @@ export function action({ type, payload = {} }) {
           if(sender===HUMAN_ID) DB.prepare(`UPDATE accounts SET human_reply_due_at=
             CASE WHEN human_reply_due_at IS NULL OR human_reply_due_at<=? OR human_reply_due_at>? THEN ? ELSE human_reply_due_at END WHERE id=?`)
             .run(now,replyDue,replyDue,recipient);
+          if(fastContinuation) DB.prepare('UPDATE accounts SET human_chat_until=? WHERE id=?').run(new Date(Date.now()+60_000).toISOString(),recipient);
+          if(fastContinuation&&simulatorEnabled) setImmediate(()=>void simulator.requestTick());
         } else if(sender!==HUMAN_ID) {
-          DB.prepare('UPDATE accounts SET human_reply_due_at=NULL WHERE id=?').run(sender);
+          DB.prepare('UPDATE accounts SET human_reply_due_at=NULL,human_chat_until=? WHERE id=?').run(new Date(Date.now()+60_000).toISOString(),sender);
         }
         for(const personId of [sender,recipient]) if(!accountStmt.get(personId).is_human) {
           const other=personId===sender?recipient:sender;

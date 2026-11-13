@@ -19,6 +19,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - AI profillerinin yakın mesajlaşma ve arkadaşlık olayları persona başına sınırlı yerel hafızaya eklenir ve `system.md` içine yansıtılır.
 - İnsan DM'leri alıcı persona için kişilik ve simülasyon hızına bağlı ayrı okuma ve yanıt zamanları kurar. AI mesajı görüldü bırakıp hiç yanıt vermeyebilir. Okuma zamanları kaydedilir; AI, kendi mesajı görüldü ve yanıtsız kaldıysa kişiliğine göre takip mesajı atabilir veya bekleyebilir.
 - Yanıt sırasındaki insan DM'si, normal persona DM başlatma ritminden ayrıdır; persona yanıt vermeyi seçerse hedef insan olmalıdır. Beklemeyi seçebilir.
+- AI'nın insana DM göndermesinden sonra 60 saniyelik gerçek zamanlı sohbet devam penceresi açılır; bu penceredeki insan mesajı hızlı yanıtı tetikler. Süre sessizlikle dolar ve sonraki DM normal kişilik gecikmesini kullanır.
 - Varsayılan persona dağılımı %60 ABD ve 16–30 yaştır; ayarlar ekranından nüfus dağılımı ve simülasyon hızı değiştirilebilir.
 - Alternatif hesapla blok aşma deneyi varsayılan olarak kapalıdır; açıldığında insan hesabının engellediği AI için tek bir alternatif hesap ve tek DM üretir.
 - Kontrollü persona karşılaştırması iki açık ID kohortu kullanır; sabit koşullar kısa veya daha ifadeci yanıt stilidir. Aktif deney boyunca simülasyon ayarları ve nüfus değiştirilemez.

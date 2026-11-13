@@ -2,10 +2,10 @@
 
 ## Durum özeti
 
-- Aşama: Cygnet 2.4 DM yanıtı, görüldü ve typing akışı tamamlandı
-- Son tamamlanan iş: insan DM yanıtları normal AI-AI DM ritminden ayrıldı; yanıt seçilirse hedef insana sabitleniyor. Mevcut cevapsız DM'ler migration ile sıraya alınacak.
+- Aşama: Cygnet 2.4 DM yanıtı, görüldü, typing ve devam penceresi tamamlandı
+- Son tamamlanan iş: AI yanıtından sonra 60 saniye hızlı devam penceresi eklendi; pencere içindeki follow-up DM hemen tetiklenir, süre aşımında persona normal gecikmeye döner.
 - Şu an yapılan iş: bu düzeltmeyi private `main` dalına commit/push etme
-- Sıradaki adım: uygulamayı yeniden başlat; eski cevapsız mesajlar yanıtlama kuyruğuna girer
+- Sıradaki adım: uygulamayı yeniden başlat; yeni hesap alanı migration ile eklenir ve hızlı devam akışı çalışır.
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
@@ -40,6 +40,7 @@
 - [x] Avatar fotoğrafı, More menüsü, gerçek takip sayıları ve çift onaylı reseti ekle; `./cygnet.sh check`, 17 akışlı gerçek Chromium E2E ve 100/1.000 profil benchmark'ı tamamla (`reports/2026-11-13-profile-reset-verification.md`).
 - [x] Cygnet 2.3: fresh/reset profillerini post ve story olmadan oluştur; persona ajanlarının zamanlanmış canlı içerik akışını ve boş feed başlangıcını `./cygnet.sh check`, Chromium E2E 20/20 ve benchmark ile doğrula (`reports/2026-11-14-empty-launch-verification.md`).
 - [x] Cygnet 2.4: insan DM yanıtını ayrı zamanla; orkestratör DM seçtiğinde kişiyi başka AI'a yönlendirmesin, cevapsız eski mesajları migration ile sıraya al. `./cygnet.sh check` ve Chromium E2E 21/21 (`reports/2026-11-14-dm-reply-routing.md`).
+- [x] Cygnet 2.4: AI-DM sonrası 60 saniyelik gerçek zamanlı devam penceresi, follow-up için immediate simulator tick ve süre aşımında normal gecikme (`reports/2026-11-14-dm-continuation-window.md`).
 
 ### Cygnet 1.0
 

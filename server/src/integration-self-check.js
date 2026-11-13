@@ -22,7 +22,7 @@ try {
   const port = await freePort(), base = `http://127.0.0.1:${port}`;
   child = spawn(process.execPath, ['src/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000' },
+    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000', CYGNET_DISABLE_SIMULATOR: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -80,12 +80,19 @@ try {
   assert.ok(Date.parse(dmAccount.read_due_at)>Date.now(),'an inbound human DM schedules an independent persona read decision');
   const dmReply=await action('message.send',{actorId:one.id,recipientId:human,content:'I saw your message.'});
   assert.equal(dmReply.response.status,200);
-  assert.equal((await request('/api/export')).value.accounts.find((account)=>account.id===one.id).human_reply_due_at,null,'a persona reply clears its pending human reply opportunity');
+  let dmState=(await request('/api/export')).value;
+  assert.equal(dmState.accounts.find((account)=>account.id===one.id).human_reply_due_at,null,'a persona reply clears its pending human reply opportunity');
+  assert.ok(Date.parse(dmState.accounts.find((account)=>account.id===one.id).human_chat_until)>Date.now(),'a persona reply opens a one-minute active chat window');
+  const followup=await action('message.send',{actorId:human,conversationId:dm.value.result.conversationId,content:'What do you like to read?'});
+  assert.equal(followup.response.status,200);
+  dmState=(await request('/api/export')).value;
+  assert.ok(Date.parse(dmState.accounts.find((account)=>account.id===one.id).human_reply_due_at)<=Date.now()+1000,'a human follow-up inside the active window is scheduled immediately');
   assert.equal((await action('message.read',{actorId:human,conversationId:dm.value.result.conversationId})).value.result.count,1);
   assert.equal((await action('message.read',{actorId:two.id,conversationId:dm.value.result.conversationId})).response.status,404);
-  assert.equal((await action('message.read',{actorId:one.id,conversationId:dm.value.result.conversationId})).value.result.count,1);
+  assert.ok((await action('message.read',{actorId:one.id,conversationId:dm.value.result.conversationId})).value.result.count>=1);
   const dmExport=(await request('/api/export')).value;
   assert.ok(dmExport.messages.find((message)=>message.id===dm.value.result.id).read_at,'AI reading a human DM persists its receipt');
+  assert.ok(dmExport.messages.find((message)=>message.id===followup.value.result.id).read_at,'AI reading a rapid follow-up persists its receipt');
   assert.ok(dmExport.accounts.find((account)=>account.id===one.id).seen_due_at,'human reading an AI DM schedules a personality follow-up decision');
   const generatedBytes=Buffer.from('isolated generated DM image'),generatedFilename='generated-dm.png',generatedHash=createHash('sha256').update(generatedBytes).digest('hex');
   mkdirSync(join(temp,'media'),{recursive:true});writeFileSync(join(temp,'media',generatedFilename),generatedBytes);
@@ -160,7 +167,7 @@ try {
   assert.equal(firstExit, 0, `graceful shutdown failed: ${output}`);
   child = spawn(process.execPath, ['src/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000' },
+    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000', CYGNET_DISABLE_SIMULATOR: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let restartedReady = false;

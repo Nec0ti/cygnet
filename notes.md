@@ -82,3 +82,8 @@ Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; 
 - Kullanıcının birkaç AI'ya gönderdiği basit selamların tümü okundu; yanıtlar görünmedi. Yerel olay kaydı, bazı persona `dm` eylemlerinin insana değil AI arkadaşlara gittiğini gösterdi. Ortak `dm_due_at` / `last_dm_at` nedeniyle AI-AI DM insan yanıt fırsatını ileri tarihe atabiliyordu.
 - İnsan için ayrı `human_reply_due_at` alanı eklendi. Orkestratör `dm` seçerse hedef insan olarak doğrulanır; persona `wait` seçip yanıt vermeyebilir. Eski DB migration'ı konuşmadaki yanıtsız insan mesajlarını ilk açılışta sıraya alır.
 - Düzeltme sonrası `./cygnet.sh check` ve Chromium E2E 21/21 geçti. Gerçek deney DB'si resetlenmedi.
+
+## 2.6 DM devam penceresi — 2026-11-14
+
+- Kullanıcı DM gecikmesinin sohbet devam ederken doğal olmadığını belirtti. AI insana her mesaj gönderdiğinde 60 saniyelik gerçek zamanlı aktif pencere açılır; insan bu sürede cevap verirse reply anında sıraya girer ve simulator tick'i uyandırılır.
+- Aktif follow-up AI yanıtı zorunludur ve insana yönlendirilir. AI'nın mesajından sonra bir dakika insan mesajı gelmezse pencere kapanır; daha sonraki mesajlar normal kişilik/simülasyon gecikmesini kullanır. Bu süre simulation speed ile çarpılmaz.

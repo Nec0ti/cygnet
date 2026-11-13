@@ -2,6 +2,14 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-14 — DM devam penceresi ve hızlı cevap (tamamlandı)
+
+- Kullanıcı, yeni DM yanıtlarının çok yavaş olduğunu ve aynı sohbet sürerken sonraki mesajların anında yanıtlanmasını; bir dakika sessizlikten sonra sohbet temposunun kapanmasını istedi.
+- Tasarım: AI insana DM gönderince gerçek zamanlı 60 saniyelik aktif sohbet penceresi açılır. İnsan bu sürede cevap yazarsa persona DM yanıtı hemen due olur, simülatör tick'i tetiklenir ve devam yanıtı AI hedef seçimine bırakılmaz. Süre aşılırsa yeni mesaj eski kişilik/simülasyon gecikmesini kullanır.
+- `requestTick()` çalışan simülatör turu varsa tur sonrasına tek ek tur kuyruğa koyar; sohbet hızlı yanıtı rutin 60 saniyelik tick'i beklemez.
+- Doğrulama: `./cygnet.sh check` geçti; Chromium E2E 21/21 geçti. Entegrasyon check'i 60 saniyelik aktif pencere ve hemen due follow-up'ı, simulator self-check'i aktif pencerede zorunlu cevap ve süre aşımında bekleme kararını doğruladı.
+- Deney verisi sıfırlanmadı; `reports/2026-11-14-dm-continuation-window.md`. Kodun çalışan sürece geçmesi için normal restart gerekli.
+
 ## 2026-11-14 — İnsan DM yanıtını AI-AI DM'den ayırma (tamamlandı)
 
 - Kullanıcı dört AI'ya sade selam verdi; hepsi okudu, ancak insan konuşmalarında yanıt görünmedi.
