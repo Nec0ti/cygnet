@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from './store.js';
 import { seedStore } from './seed.js';
+import { existingMedia } from './media.js';
 
 const temp=mkdtempSync(join(tmpdir(),'cygnet-check-'));
 const db=openStore(':memory:');
@@ -15,6 +16,9 @@ try {
   const persona=db.prepare("SELECT id,system_md FROM accounts WHERE is_human=0 LIMIT 1").get();
   assert.match(persona.system_md,/## Friends\n- \[\[/);
   assert.equal(readFileSync(join(temp,'personas',persona.id,'system.md'),'utf8'),persona.system_md);
+  writeFileSync(join(temp,'generated.png'),'not-an-image-but-a-file');
+  assert.equal(existingMedia('generated.png',temp),'generated.png');
+  assert.throws(()=>existingMedia('../generated.png',temp),/Generated media file not found/);
   const seededAgain=seedStore(db,{dataRoot:temp});
   assert.equal(seededAgain.seeded,false);
   console.log('Cygnet seed self-check passed.');

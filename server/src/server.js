@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction } from './store.js';
 import { seedStore } from './seed.js';
 import { Simulator } from './simulator.js';
+import { existingMedia as resolveExistingMedia } from './media.js';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const DB = openStore();
@@ -120,10 +121,7 @@ function mediaFile(media) {
   return filename;
 }
 function existingMedia(filename) {
-  if(typeof filename!=='string' || basename(filename)!==filename || !/^[a-zA-Z0-9._-]+\.(?:png|jpe?g|webp|gif)$/i.test(filename) || !existsSync(join(MEDIA_DIR,filename))) {
-    throw Object.assign(new Error('Generated media file not found'),{status:400});
-  }
-  return filename;
+  return resolveExistingMedia(filename,MEDIA_DIR);
 }
 function notify(account, actor, type, entity) {
   if (account === actor) return;
