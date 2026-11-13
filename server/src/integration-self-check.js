@@ -50,6 +50,8 @@ try {
   const action = (type, payload) => request('/api/actions', 'POST', { type, payload });
   const bootstrapResult = await request('/api/bootstrap');
   assert.equal(bootstrapResult.value.accounts.length, 100);
+  assert.equal(bootstrapResult.value.posts.length, 0, 'fresh API bootstrap has no posts or stories');
+  assert.equal(bootstrapResult.value.stories.length, 0);
   const human = bootstrapResult.value.me.id, [one, two, three] = bootstrapResult.value.accounts;
   const day = new Date().toISOString().slice(0, 10);
 

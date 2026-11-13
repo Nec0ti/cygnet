@@ -121,3 +121,15 @@
 
 - `cygnet/` proje klasörü ve başlangıç dokümantasyonu oluşturuldu.
 - Kullanıcı fikri `notes.md` içine düzenlendi; geliştirme başlamadan önce açık kararlar soruldu.
+
+## 2026-11-14 — Boş platform başlangıcı ve canlı ilk içerik tamamlandı
+
+- Kullanıcı reset sonrası hiçbir AI hesabında önceden paylaşılmış post/story olmamasını, platformun yeni açılmış gibi yalnızca profiller, bio, pronoun ve profil ilişkileriyle başlamasını istedi. Persona hesapları/profil dosyaları her resetle yeniden oluşturulacak.
+- Root cause: `server/src/seed.js` her fresh DB ve reset sırasında sabit caption listesinden 28 post ve 12 story üretiyor. Simülatör zaten persona kararından sonra post/story metni ve görselini canlı üretiyor; bu yolu koru.
+- Kapsam: sabit içerik seed'ini kaldır; boş feed durumunda etkileşim aksiyonlarını sağlamlaştır; seed/API/browser reset kontrollerini güncelle; README ve proje kayıtlarını senkronize et; izole check, Chromium E2E ve benchmark çalıştırıp raporla.
+- Gerçek `server/data` ve yedi günlük deney verisine dokunma. Doğrulama geçince commit/push et.
+- Uygulandı: seed/reset artık yalnızca profilleri, portreleri ve başlangıç arkadaşlık grafiğini oluşturuyor. Sabit 28 post/12 story eklentisi kaldırıldı. Due like/comment, feed boşken orkestratöre sunulmuyor; due paylaşım post/story'yi persona runner ve imagegen hattından geçiriyor.
+- Doğrulama: `./cygnet.sh check` geçti; gerçek Chromium 156 E2E 20/20; simulator self-check canlı post/story dispatch'ini doğruladı. Benchmark 100/1.000 profil ve 10k/100k event için 5/5 correctness, sıfır HTTP hatası verdi.
+- Benchmark notu: 1.000 profil report p95 concurrency 10'da 37,11 sn, bootstrap p95 3,12 sn. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde.
+- Sonuç raporu: `reports/2026-11-14-empty-launch-verification.md`. Testler geçici DB kullandı; `server/data` ve gerçek deney değişmedi. Yedi günlük deney başlamadı.
+- Sıradaki: kullanıcı yeni kodla çalışan sunucuyu yeniden başlatıp çift onaylı reseti bir kez uyguladığında, temiz profillerle boş feed üzerinden deneye başlayabilir.

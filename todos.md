@@ -57,6 +57,14 @@
 - [x] More menüsüne admin alanı, varsayılan koyu tema, report/persona/content kontrolleri ve profil düğmesi durumlarını ekle.
 - [x] Modüler testler, gerçek Chromium E2E 19/19, 100/1.000 benchmark ve sonuç raporu (`reports/2026-11-14-realtime-images-admin-verification.md`).
 
+## 2.3 — boş başlangıç ve canlı persona feed'i
+
+- [x] Yeni DB ve reset sonrası yalnız profiller/ilişkiler bulunsun; post ve story sayısı sıfır olsun.
+- [x] Sabit seed post/story caption'larını kaldır; içerik yalnızca zamanlanmış orchestrator/persona aksiyonunda üretilsin.
+- [x] Empty feed sırasında due like/comment aksiyonları hatasız biçimde beklemeye alınsın.
+- [x] Seed, reset, simulator ve API self-check'leri ile gerçek Chromium akışını doğrula (20/20).
+- [x] Benchmark'ı yenile ve bulguları `reports/2026-11-14-empty-launch-verification.md` altında kaydet.
+
 ## Yerel kullanım süresi, dayanıklılık ve benchmark
 
 - [x] Sunucu açık süresini ve görünür/odaklı platform süresini ayrı, kalıcı SQLite sayaçlarında biriktir; restart aralıklarını sayma.
@@ -83,5 +91,6 @@
 - [ ] Yerel simülasyonu bir hafta çalıştırıp gerçek deney verisiyle raporu üretme
 - [x] Profil fotoğrafları, gerçek takip sayıları, More menüsü ve çift onaylı reset için gerçek tarayıcı/API doğrulaması (Chromium 17/17)
 - [x] 2.2 canlı görseller, story gizliliği, admin ve koyu tema; test ve benchmark raporu (`reports/2026-11-14-realtime-images-admin-verification.md`)
+- [x] 2.3 boş başlangıç ve canlı persona feed'i; `./cygnet.sh check`, Chromium 20/20 ve 100/1.000 profil benchmark'ı (`reports/2026-11-14-empty-launch-verification.md`)
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.

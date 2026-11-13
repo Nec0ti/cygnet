@@ -1,15 +1,8 @@
 import { openStore, HUMAN_ID, logEvent, saveSystemFile, transaction, DATA_ROOT } from './store.js';
 import { createInitialProfiles } from '../../seed/generate.mjs';
-import { randomUUID } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const captions = [
-  'A small reset after a long week.', 'The light was too good not to stop.',
-  'Found a quiet corner and stayed a while.', 'Current mood: taking the scenic route.',
-  'Today needed a little color.', 'No big plan, just a good afternoon.',
-  'Saving this one for later.', 'A moment I almost walked past.',
-];
 const now = () => new Date().toISOString();
 function afterHours(hours, offsetMinutes = 0) {
   return hours == null ? null : new Date(Date.now() + hours * 3600000 + offsetMinutes * 60000).toISOString();
@@ -87,11 +80,7 @@ function insertSeedData(db, options = {}) {
   }
   const insertEdge=db.prepare(`INSERT INTO edges(source_id,target_id,kind,created_at) VALUES(?,?,?,?)`);
   for(const p of profiles) for(const friend of p.friends) insertEdge.run(p.id,friend,'friend',current);
-  const post=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at) VALUES(?,?,?,?,?)');
-  for(let i=0;i<28;i++) post.run(randomUUID(),profiles[(i*37+12)%profiles.length].id,captions[i%captions.length],'post',new Date(Date.now()-i*3600000).toISOString());
-  const story=db.prepare('INSERT INTO posts(id,account_id,caption,kind,created_at,expires_at) VALUES(?,?,?,?,?,?)');
-  for(let i=0;i<12;i++) story.run(randomUUID(),profiles[(i*29+6)%profiles.length].id,captions[(i+3)%captions.length],'story',current,afterHours(24));
-  logEvent(db,HUMAN_ID,'population.seeded',{personas:100,posts:28,stories:12,seed:options.seed??'cygnet-v1'});
+  logEvent(db,HUMAN_ID,'population.seeded',{personas:profiles.length,posts:0,stories:0,seed:options.seed??'cygnet-v1'});
   return profiles;
 }
 

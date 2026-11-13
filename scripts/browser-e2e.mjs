@@ -96,6 +96,9 @@ try {
   assert.equal(initial.me.followers, 0);
   assert.equal(initial.me.following, 0);
   assert.ok(initial.accounts.every((account) => account.avatarUrl && account.followers === 0 && account.following === 0));
+  assert.equal(initial.posts.length, 0, 'a newly launched platform must not contain prewritten posts');
+  assert.equal(initial.stories.length, 0, 'a newly launched platform must not contain prewritten stories');
+  assert.equal(await page.locator('.post-card').count(), 0, 'the initial home feed must be empty');
   assert.equal(initial.stories.every((story) => story.accountId === 'human'), true, 'unfollowed AI stories must be private to their followers');
   assert.equal(new Set(initial.accounts.map((account) => account.avatarUrl)).size, 100, 'the first 100 personas need distinct portraits');
   for (const account of initial.accounts) assert.equal((await fetch(`${apiUrl}${account.avatarUrl}`)).status, 200);
@@ -104,12 +107,16 @@ try {
   const darkBackground = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   assert.ok(darkBackground.split(',').slice(0,3).map((part)=>Number(part.replace(/\D/g,''))).every((channel)=>channel<80), `default theme should be dark: ${darkBackground}`);
   check('default theme uses a dark, readable canvas');
-  const aiPost = initial.posts.find((post) => post.accountId !== 'human');
+  const aiPostResult = await action('post.create', { actorId: initial.accounts[0].id, caption: 'AI launch post' });
+  assert.equal(aiPostResult.response.status, 200);
+  const aiPost = (await apiJson('/api/bootstrap')).value.posts.find((post) => post.id === aiPostResult.value.result.id);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('.post-card').first().waitFor();
+  check('fresh launch is empty, then a post appears only after an explicit persona publish action');
   const feedPost = page.locator('.post-card').first();
-  const likesBefore = Number((await feedPost.locator('.post-body b').first().innerText()).replaceAll(',', '').split(' ')[0]);
   await feedPost.getByRole('button', { name: 'Like post' }).click();
   await waitFor(async () => (await apiJson('/api/bootstrap')).value.posts.find((post) => post.id === aiPost.id)?.likedByMe, 'like persisted in SQLite');
-  assert.match(await feedPost.locator('.post-body b').first().innerText(), new RegExp(String(likesBefore + 1)));
+  assert.equal(await feedPost.locator('.post-body b').first().innerText(), '1 likes');
   check('feed like toggles and persists');
 
   const commentText = 'Chromium comment flow';
@@ -135,8 +142,11 @@ try {
   await storyComposer.getByRole('button', { name: 'Share' }).click();
   const story = await waitFor(async () => (await apiJson('/api/bootstrap')).value.stories.find((item) => item.caption === 'Chromium image story'), 'story saved');
   assert.ok(story.mediaUrl);
-  const firstOtherStory = (await apiJson('/api/export')).value.posts.find((item) => item.kind === 'story' && item.account_id !== 'human');
-  const firstOtherStoryAccount = initial.accounts.find((item) => item.id === firstOtherStory.account_id);
+  const firstOtherStoryAccount = initial.accounts[1];
+  const aiStoryResult = await action('story.create', { actorId: firstOtherStoryAccount.id, caption: 'AI launch story' });
+  assert.equal(aiStoryResult.response.status, 200);
+  const firstOtherStory = (await apiJson('/api/export')).value.posts.find((item) => item.id === aiStoryResult.value.result.id);
+  assert.equal((await apiJson('/api/bootstrap')).value.stories.some((item) => item.id === firstOtherStory.id), false, 'unfollowed AI story stays hidden');
   assert.equal((await action('follow.toggle', { actorId: 'human', targetId: firstOtherStory.account_id })).response.status, 200);
   await waitFor(async () => (await apiJson('/api/bootstrap')).value.stories.some((item) => item.id === firstOtherStory.id), 'followed story visibility');
   await page.reload({ waitUntil: 'domcontentloaded' });
@@ -318,11 +328,12 @@ try {
   assert.equal(afterReset.me.following, 0);
   assert.ok(afterReset.me.avatarUrl);
   assert.equal(afterReset.accounts.length, 100);
-  assert.equal(afterReset.posts.length, 28);
+  assert.equal(afterReset.posts.length, 0);
+  assert.equal(afterReset.stories.length, 0);
   assert.equal(afterReset.conversations.length, 0);
   assert.equal((await apiJson('/api/settings')).value.speedMultiplier, 1);
   assert.ok((await apiJson('/api/usage')).value.platformMs < 1_000, 'the reset platform clock starts near zero and resumes immediately');
-  check('two-step reset requires displayed minutes, preserves human profile, and restores seed data/counters');
+  check('two-step reset preserves human profile and restores profiles with an empty feed and zeroed counters');
 
   assert.deepEqual(pageErrors, [], `uncaught browser errors: ${pageErrors.join('; ')}`);
   await page.screenshot({ path: join(temp, 'browser-e2e-final.png'), fullPage: true });

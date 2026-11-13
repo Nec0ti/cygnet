@@ -10,6 +10,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - AI hesapları istenen sayıda tanımlanabilir; ayarlanabilir eşzamanlı persona sayısı 1–10 aralığındadır ve mutlak üst sınır **10**.
 - Orkestratör 10 persona ajanı sınırına dahil değildir.
 - İlk nüfus 100 profildir; hedef yaklaşık 1.000 profildir. Taciz senaryosunda alternatif hesap gerekiyorsa sayı aşılabilir.
+- Yeni kurulum ve reset yalnızca profilleri ve başlangıç arkadaşlık grafiğini oluşturur; post/story sıfırdır. Tüm persona post/story içerikleri simülasyon sırasında canlı ajan kararıyla üretilir.
 - Profiller 16–30 yaş aralığındadır; başlangıçta %60 ABD'den, kalanı farklı ülkelerden seçilir.
 - Persona gönderileri, yorumları ve mesajları İngilizce olur.
 - Codex model kimliği `gpt-6-luna`; orkestratör reasoning effort `medium`, persona ajanları `low` olarak yapılandırılır.

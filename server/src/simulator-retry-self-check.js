@@ -9,8 +9,9 @@ import { Simulator } from './simulator.js';
 const temp=mkdtempSync(join(tmpdir(),'cygnet-retry-check-'));
 const db=openStore(':memory:');
 const now=Date.now(), due=new Date(now).toISOString();
-let attempts=0;
-const runner={runOrchestrator:async()=>{
+let attempts=0, orchestratorPrompt='';
+const runner={runOrchestrator:async({instructions})=>{
+  orchestratorPrompt=instructions;
   if(attempts++===0) throw new Error('synthetic orchestration failure');
   return {response:JSON.stringify({assignments:[{personaId:'u0001',kind:'wait'}]})};
 }};
@@ -34,6 +35,9 @@ try {
   assert.equal(recoveredRow.retry_count,0);
   assert.equal(recoveredRow.retry_at,null);
   assert.equal(recoveredRow.retry_error,null);
+  assert.match(orchestratorPrompt,/Recent posts:\n\[\]/);
+  const personas=JSON.parse(orchestratorPrompt.split('Personas:\n')[1].split('\n\nRecent posts:')[0]);
+  assert.ok(personas.every(({allowedActions})=>!allowedActions.some((kind)=>['like','comment'].includes(kind))));
   console.log('Simulator retry recovery self-check passed.');
 } finally {
   db.close();

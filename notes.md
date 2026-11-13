@@ -62,3 +62,9 @@ Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; 
 - Görsel üreticisi aynı yerel Codex CLI oturumunun yerleşik imagegen aracıdır. Post, story ve DM üretimi aynı medya deposu ve SHA-256 tekrar kontrolünü kullanır. Profil portreleri içerik görsellerinden ayrı tutulur.
 - AI profillerinin story erişimi de takip grafiğine göre belirlenir: insan yalnız takip ettiği hesapların story'lerini; persona da yalnız takip ettiği insan/AI hesaplarının story'lerini görebilir. Kendi story'si görünürdür; engel ve süre dolumu görünürlüğü keser.
 - Varsayılan görünüm koyu temadır. More menüsünde yerel admin çalışma alanı bulunur; persona ayarları `system.md`'ye otomatik yazılır.
+
+## 2.3 boş başlangıç ve canlı feed — 2026-11-14
+
+- Kullanıcı reset sonrası hiçbir AI hesabında önceden paylaşılmış post veya story olmamasını netleştirdi. Reset; profilleri, bio/pronouns/kişilik bilgilerini ve başlangıç persona ilişkilerini yeniden kurar, içerik üretmez.
+- Platform yeni açılmış gibi boş feed/story ile başlar. Zamanlanmış paylaşım vakti geldiğinde orkestratör persona aksiyonu atar; persona ajanı metni ve imagegen görselini o anda üretir.
+- Kaldırılacak eski davranış: seed sırasında sabit caption'lardan 28 post ve 12 story eklenmesi.

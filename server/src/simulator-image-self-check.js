@@ -14,7 +14,9 @@ const runner={
   runOrchestrator:async()=>({response:JSON.stringify({assignments:[{personaId:'u0001',kind:nextKind,targetId:target}]})}),
   runPersona:async()=>({response:JSON.stringify(nextKind==='evade_block'
     ?{profile:{name:'Alternate Test Person',username:'alternate.test.person',bio:'A new local identity.'},content:'Hi.'}
-    :{content:'Here is the photo you asked for.',imagePrompt:'A candid photo of the sender making coffee at home.'})}),
+    :['post','story'].includes(nextKind)
+      ?{caption:`Live ${nextKind} from the persona.`,imagePrompt:`A unique live ${nextKind} image.`}
+      :{content:'Here is the photo you asked for.',imagePrompt:'A candid photo of the sender making coffee at home.'})}),
   generatePostImage:async({outputName})=>{generated++;const path=join(temp,outputName);writeFileSync(path,`unique image ${generated}`);return {path};},
 };
 try {
@@ -40,8 +42,21 @@ try {
   assert.equal((await simulator.tick()).processed,1);
   assert.equal(applied[2].type,'persona.alias.message');
   assert.match(applied[2].payload.avatarFilename,/\.png$/);
-  assert.equal(generated,3);
-  console.log('Realtime image generation self-check passed for both DM directions and a later-created profile.');
+  nextKind='post';
+  db.prepare("UPDATE accounts SET evade_due_at=NULL,post_due_at=?,dm_due_at=NULL WHERE id='u0001'").run(new Date().toISOString());
+  assert.equal((await simulator.tick()).processed,1);
+  assert.equal(applied[3].type,'post.create');
+  assert.equal(applied[3].payload.caption,'Live post from the persona.');
+  assert.match(applied[3].payload.mediaFilename,/\.png$/);
+  nextKind='story';
+  db.prepare("UPDATE accounts SET post_due_at=NULL,story_due_at=? WHERE id='u0001'").run(new Date().toISOString());
+  assert.equal((await simulator.tick()).processed,1);
+  assert.equal(applied[4].type,'story.create');
+  assert.equal(applied[4].payload.caption,'Live story from the persona.');
+  assert.match(applied[4].payload.mediaFilename,/\.png$/);
+  assert.equal(generated,5);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,0,'seed and mocked action path never store canned content');
+  console.log('Realtime image generation self-check passed for live persona posts, stories, both DM directions, and a later-created profile.');
 } finally {
   db.close();
   rmSync(temp,{recursive:true,force:true});

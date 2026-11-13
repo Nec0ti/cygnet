@@ -2,13 +2,14 @@
 
 ## Durum özeti
 
-- Aşama: Cygnet 2.2 canlı görseller, takip tabanlı story gizliliği, admin alanı ve default dark theme tamamlandı
-- Son tamamlanan iş: `./cygnet.sh check` geçti; gerçek Chromium E2E 19/19; gerçek Codex imagegen DM smoke; benchmark correctness 5/5 (100/1.000 profil)
-- Şu an yapılan iş: bu sürüm raporlandı; yedi günlük deney başlamadı
-- Sıradaki adım: yerel simülasyonu bir hafta çalıştırıp gerçek deney raporu üretmek
+- Aşama: Cygnet 2.3 boş başlangıç ve canlı persona feed'i tamamlandı
+- Son tamamlanan iş: `./cygnet.sh check` geçti; Chromium E2E 20/20; 100/1.000 profil benchmark correctness 5/5 ve sıfır HTTP hatası
+- Şu an yapılan iş: değişiklikleri raporlayıp private main'e commit/push etme
+- Sıradaki adım: uygulama sunucusunu yeni kodla yeniden başlat, iki aşamalı reseti yap ve deneyi boş feed ile sürdür
+- Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
-- Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 43,39 sn ve 15,27 MB yanıt; server RSS 647,8 MB. Ayrıntı `reports/benchmark-2026-11-13T20-43.md` içinde
-- Sonuç raporu: `reports/2026-11-14-realtime-images-admin-verification.md`
+- Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
+- Sonuç raporu: `reports/2026-11-14-empty-launch-verification.md`
 
 ## İşler
 
@@ -37,6 +38,7 @@
 - [x] Gerçek Codex ile 12× hızda bir saat eşdeğeri simülasyon yap; orkestratör atama istemini ve arkadaş grafiği bağlamını düzelt, üç persona sınırı/AI–AI DM/imagegen postunu doğrula.
 - [x] 1.000 profil benchmark'ını yenile ve test sonuç raporunu yaz (`reports/2026-11-13-browser-simulation-verification.md`).
 - [x] Avatar fotoğrafı, More menüsü, gerçek takip sayıları ve çift onaylı reseti ekle; `./cygnet.sh check`, 17 akışlı gerçek Chromium E2E ve 100/1.000 profil benchmark'ı tamamla (`reports/2026-11-13-profile-reset-verification.md`).
+- [x] Cygnet 2.3: fresh/reset profillerini post ve story olmadan oluştur; persona ajanlarının zamanlanmış canlı içerik akışını ve boş feed başlangıcını `./cygnet.sh check`, Chromium E2E 20/20 ve benchmark ile doğrula (`reports/2026-11-14-empty-launch-verification.md`).
 
 ### Cygnet 1.0
 

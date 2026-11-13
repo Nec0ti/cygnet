@@ -3,15 +3,17 @@ import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from './store.js';
-import { seedStore } from './seed.js';
+import { resetSeedStore, seedStore } from './seed.js';
 import { existingMedia } from './media.js';
 import { connectFriends } from './friend-hook.js';
+import { ensureExperimentSchema } from './experiments.js';
 
 const temp=mkdtempSync(join(tmpdir(),'cygnet-check-'));
 const db=openStore(':memory:');
 try {
   const result=seedStore(db,{dataRoot:temp});
   assert.deepEqual(result,{seeded:true,accounts:101});
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,0,'fresh platform must have no posts or stories');
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND country='United States'").get().n,60);
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0 AND age BETWEEN 16 AND 30').get().n,100);
   const personas=db.prepare('SELECT id,name,age,country,pronouns,tone,traits_json,system_md,avatar_filename FROM accounts WHERE is_human=0').all();
@@ -43,6 +45,11 @@ try {
   const seededAgain=seedStore(db,{dataRoot:temp});
   assert.equal(seededAgain.seeded,false);
   assert.equal(db.prepare("SELECT avatar_filename FROM accounts WHERE id='u0001'").get().avatar_filename,'profile-001.jpg');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,0);
+  ensureExperimentSchema(db);
+  resetSeedStore(db,{dataRoot:temp});
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,0,'reset must restore profiles without content');
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0').get().n,100);
   console.log('Cygnet seed self-check passed.');
 } finally {
   db.close();
