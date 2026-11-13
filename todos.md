@@ -65,6 +65,13 @@
 - [x] Seed, reset, simulator ve API self-check'leri ile gerçek Chromium akışını doğrula (20/20).
 - [x] Benchmark'ı yenile ve bulguları `reports/2026-11-14-empty-launch-verification.md` altında kaydet.
 
+## 2.4 — DM yanıtı, canlı yenileme ve görüldü
+
+- [x] Gelen insan DM'lerini persona ritmine, kişilik özelliklerine ve simülasyon hızına göre yanıt için zamanla.
+- [x] DM ekranı açıkken yeni mesajları yenile; conversation açılınca karşı mesajı read receipt ile kaydet.
+- [x] AI'ın kendi mesajı görüldü ve yanıtsız kaldıysa, persona prompt'una uygun takip mesajı veya bekleme kararı ver.
+- [x] API/read migration, kişilik yanıt zamanlaması, gerçek Chromium görüldü UI akışı ve tam check doğrulaması (`reports/2026-11-14-dm-seen-replies.md`).
+
 ## Yerel kullanım süresi, dayanıklılık ve benchmark
 
 - [x] Sunucu açık süresini ve görünür/odaklı platform süresini ayrı, kalıcı SQLite sayaçlarında biriktir; restart aralıklarını sayma.
@@ -92,5 +99,6 @@
 - [x] Profil fotoğrafları, gerçek takip sayıları, More menüsü ve çift onaylı reset için gerçek tarayıcı/API doğrulaması (Chromium 17/17)
 - [x] 2.2 canlı görseller, story gizliliği, admin ve koyu tema; test ve benchmark raporu (`reports/2026-11-14-realtime-images-admin-verification.md`)
 - [x] 2.3 boş başlangıç ve canlı persona feed'i; `./cygnet.sh check`, Chromium 20/20 ve 100/1.000 profil benchmark'ı (`reports/2026-11-14-empty-launch-verification.md`)
+- [x] 2.4 DM yanıt zamanlaması, canlı yenileme ve kişilik bazlı görüldü tepkisi (`reports/2026-11-14-dm-seen-replies.md`)
 
 Her sürümde tamamlanmayan iş backlog'da açık kalır; en yeni kayıt `backloglog.md` içine eklenir.

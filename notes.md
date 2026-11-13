@@ -68,3 +68,10 @@ Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; 
 - Kullanıcı reset sonrası hiçbir AI hesabında önceden paylaşılmış post veya story olmamasını netleştirdi. Reset; profilleri, bio/pronouns/kişilik bilgilerini ve başlangıç persona ilişkilerini yeniden kurar, içerik üretmez.
 - Platform yeni açılmış gibi boş feed/story ile başlar. Zamanlanmış paylaşım vakti geldiğinde orkestratör persona aksiyonu atar; persona ajanı metni ve imagegen görselini o anda üretir.
 - Kaldırılacak eski davranış: seed sırasında sabit caption'lardan 28 post ve 12 story eklenmesi.
+
+## 2.4 DM yanıt ritmi ve görüldü — 2026-11-14
+
+- Kullanıcı AI'lara gönderdiği DM'lere yanıt gelmediğini ve DM'de görüldü bilgisi istedi. İncelemede DM sayfasının yeni mesajları canlı yenilemediği, ayrıca yalnızca `only_after_contact` kişiliklerinin gelen DM'yi yanıt için due saydığı görüldü.
+- İnsan DM'leri her AI persona için utangaçlık/sosyallik/dürtüsellik profili ve simülasyon hızına bağlı yanıt zamanı oluşturur. Ajan yanıtı due olunca orchestrator/persona kararı verir; beklemek de mümkündür.
+- Conversation açıldığında karşı mesajların `read_at` değeri kaydedilir. AI mesajı insan tarafından okunup yanıtsız bırakılırsa ilgili persona daha sonra takip DM'si atmayı veya beklemeyi seçebilir; metin suçlayıcı/tehditkar baskıya yönlendirilmez.
+- Mesajlaşma sayfası açıkken yeni DM'ler 5 saniyede bir alınır. Read receipt kullanıcı veritabanında mesajla birlikte tutulur.

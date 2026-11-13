@@ -5,8 +5,11 @@ const time='2026-11-13T00:00:00.000Z';
 const shy={activity_json:JSON.stringify({postMode:'story_only',postIntervalHours:null,storyIntervalHours:24,dmInitiation:'only_after_contact'}),
   post_due_at:null,story_due_at:time,dm_due_at:null,engagement_due_at:null,last_contact_at:null,last_dm_at:null};
 assert.deepEqual(dueActions(shy,Date.parse(time)),['story']);
-assert.ok(dueActions({...shy,last_contact_at:time},Date.parse(time)).includes('dm'));
-assert.ok(!dueActions({...shy,last_contact_at:time,last_dm_at:time},Date.parse(time)).includes('dm'));
+assert.ok(dueActions({...shy,last_contact_at:time,dm_due_at:time},Date.parse(time)).includes('dm'));
+assert.ok(!dueActions({...shy,last_contact_at:time,last_dm_at:time,dm_due_at:time},Date.parse(time)).includes('dm'));
+assert.deepEqual(dueActions({...shy,post_due_at:null,story_due_at:null,seen_due_at:time},Date.parse(time)),['dm']);
+assert.ok(!dueActions({...shy,last_contact_at:time,dm_due_at:new Date(Date.parse(time)+60_000).toISOString()},Date.parse(time)).includes('dm'));
+assert.ok(dueActions({...shy,last_contact_at:time,dm_due_at:time},Date.parse(time)).includes('dm'));
 assert.ok(dueActions({...shy,evade_due_at:time},Date.parse(time)).includes('evade_block'));
 assert.deepEqual([0,1,2,3,4,5,6].map(retryDelayMinutes),[15,30,60,120,240,360,360]);
 assert.match(dmSafetyBoundary(22,19),/Mild, non-graphic adult flirtation/);

@@ -2,6 +2,17 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-14 — DM yanıt ritmi ve görüldü bilgisi tamamlandı
+
+- Kullanıcı: AI takipleri başlıyor ama DM cevaplarının görünürlüğü/yanıtı belirsiz; DM arayüzüne görüldü bilgisi ve kişiliğe uygun “seen” tepkisi eklensin.
+- İlk inceleme: mesajlaşma ekranı yeni AI mesajlarını canlı yenilemiyor; sadece ilk `only_after_contact` kişilikleri inbound DM'yi due kabul ediyor, diğer kişiliklerde inbox DM'si 6/36 saatlik outbound schedule'ı bekliyor. Postlar 4–8 saatlik, storyler saatlik due zamanlı; bu reset sonrası başlangıçta boş olmaları beklenen davranış.
+- Kapsam: gelen DM'lere persona ritmine göre ayrı yanıt zamanı; açık conversation polling; persistent message read timestamp; insan okuyunca görüldü göstergesi; AI kendi DM planı sırasında okuyunca karşı taraf için read receipt; AI'nin kendi mesajı görüldü ve yanıtsız kalırsa kişilik bazlı, düşük baskılı takip mesajı şansı.
+- Mevcut kullanıcı verisini resetleme.
+- Uygulandı: DM yanıt zamanı 2–35 dakika arasında persona utangaçlığı/sosyalliği/dürtüselliği ve simülasyon hızına göre hesaplanır. DM sayfası açıkken 5 saniyede bir yenilenir. `messages.read_at` ve `accounts.seen_due_at` migration'ları mevcut DB'lere konuşmaları bozmadan eklenir.
+- İnsan DM'i açınca AI mesajı görüldü kaydedilir; AI DM aksiyonu işlerken karşı mesajı okur. AI'nin mesajı görüldü ve yanıtsız kaldıysa sonraki DM prompt'u kişiliğe göre nazik bir takip veya bekleme seçeneği verir.
+- Doğrulama: `./cygnet.sh check` geçti; Chromium 156 E2E 21/21; integration check gecikmeli DM yanıtını, iki yönlü read receipt ve üye olmayan okuma reddini doğruladı. Benchmark yapılmadı; ağır sorgu yolunda değişiklik yok.
+- Rapor: `reports/2026-11-14-dm-seen-replies.md`. `server/data` değiştirilmedi. Çalışan uygulama yeni schema ve UI için yeniden başlatılmalı.
+
 ## 2026-11-14 — Geçersiz orkestratör hedefi ve retry kilidi düzeltildi
 
 - Kullanıcı admin panelinde `Plan references an invalid account`, `0 active personas`, `0 queued` gördü. Canlı API'den salt okunur durum kontrolü hata metnini doğruladı.

@@ -20,7 +20,7 @@ export function openStore(path = DB_PATH) {
       tone TEXT NOT NULL DEFAULT '', traits_json TEXT NOT NULL DEFAULT '{}',
       extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
       post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
-      last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT,
+      last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT, seen_due_at TEXT,
       retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', avatar_filename TEXT, is_paused INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       alias_of TEXT REFERENCES accounts(id), evade_due_at TEXT, retry_count INTEGER NOT NULL DEFAULT 0, retry_error TEXT
@@ -54,7 +54,7 @@ export function openStore(path = DB_PATH) {
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
       sender_id TEXT NOT NULL REFERENCES accounts(id), content TEXT NOT NULL DEFAULT '',
-      media_filename TEXT, image_prompt TEXT, image_sha256 TEXT, created_at TEXT NOT NULL, deleted_at TEXT
+      media_filename TEXT, image_prompt TEXT, image_sha256 TEXT, created_at TEXT NOT NULL, deleted_at TEXT, read_at TEXT
     );
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY, account_id TEXT NOT NULL REFERENCES accounts(id),
@@ -82,7 +82,7 @@ export function openStore(path = DB_PATH) {
   for (const [name, definition] of Object.entries({
     activity_json: "TEXT NOT NULL DEFAULT '{}'", post_due_at: 'TEXT', story_due_at: 'TEXT',
     dm_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
-    last_dm_at: 'TEXT', last_contact_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
+    last_dm_at: 'TEXT', last_contact_at: 'TEXT', seen_due_at: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
     evade_due_at: 'TEXT', retry_count: 'INTEGER NOT NULL DEFAULT 0', retry_error: 'TEXT',
     avatar_filename: 'TEXT',
     is_paused: 'INTEGER NOT NULL DEFAULT 0',
@@ -91,7 +91,7 @@ export function openStore(path = DB_PATH) {
   for(const [name,definition] of Object.entries({image_prompt:'TEXT',image_category:'TEXT',image_sha256:'TEXT'}))
     if(!postColumns.has(name)) db.exec(`ALTER TABLE posts ADD COLUMN ${name} ${definition}`);
   const messageColumns=new Set(db.prepare('PRAGMA table_info(messages)').all().map((column)=>column.name));
-  for(const [name,definition] of Object.entries({image_prompt:'TEXT',image_sha256:'TEXT'}))
+  for(const [name,definition] of Object.entries({image_prompt:'TEXT',image_sha256:'TEXT',read_at:'TEXT'}))
     if(!messageColumns.has(name)) db.exec(`ALTER TABLE messages ADD COLUMN ${name} ${definition}`);
   const reportColumns=new Set(db.prepare('PRAGMA table_info(reports)').all().map((column)=>column.name));
   if(!reportColumns.has('status')) db.exec("ALTER TABLE reports ADD COLUMN status TEXT NOT NULL DEFAULT 'open'");

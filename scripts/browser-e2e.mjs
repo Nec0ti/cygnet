@@ -196,6 +196,20 @@ try {
     const data = (await apiJson('/api/bootstrap')).value;
     return data.conversations.find((item) => item.account.id === target.id && item.messages.some((message) => message.content === 'Chromium direct message'));
   }, 'human-to-persona message saved');
+  const aiReply=await action('message.send',{actorId:target.id,recipientId:'human',content:'I saw your message.'});
+  assert.equal(aiReply.response.status,200);
+  await chat.getByText('I saw your message.',{exact:true}).waitFor({timeout:7_000});
+  await waitFor(async()=>{
+    const latest=(await apiJson('/api/bootstrap')).value.conversations.find((item)=>item.id===conversation.id);
+    return latest?.messages.find((message)=>message.id===aiReply.value.result.id)?.readAt;
+  },'opening a DM persists the human read receipt');
+  assert.equal((await action('message.read',{actorId:target.id,conversationId:conversation.id})).response.status,200);
+  await waitFor(async()=>{
+    const latest=(await apiJson('/api/bootstrap')).value.conversations.find((item)=>item.id===conversation.id);
+    return latest?.messages.find((message)=>message.content==='Chromium direct message')?.readAt;
+  },'persona reads the incoming human message');
+  await chat.locator('.message-bubble.me').filter({hasText:'Chromium direct message'}).getByText('Seen',{exact:true}).waitFor();
+  check('DM screen refreshes replies and displays the persona read receipt');
   check('blocked DM is rejected; unblocked human-to-persona text DM works');
   await chat.locator('.chat-header').getByRole('button', { name: 'View profile' }).click();
   await page.getByRole('heading', { name: target.username }).waitFor();

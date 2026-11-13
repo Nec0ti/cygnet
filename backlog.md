@@ -2,14 +2,14 @@
 
 ## Durum özeti
 
-- Aşama: Cygnet 2.3 boş başlangıç ve canlı persona feed'i tamamlandı; orkestratör geçersiz hedef retry düzeltmesi doğrulandı
-- Son tamamlanan iş: `./cygnet.sh check` geçti; Chromium E2E 20/20; 100/1.000 profil benchmark correctness 5/5; invalid-target recovery self-check geçti
-- Şu an yapılan iş: retry düzeltmesini raporlayıp private main'e commit/push etme
-- Sıradaki adım: uygulama sunucusunu yeni kodla yeniden başlat; mevcut retry alanları başlangıçta temizlenir ve simülasyon yeniden denenir
+- Aşama: Cygnet 2.4 DM yanıtı ve görüldü akışı tamamlandı
+- Son tamamlanan iş: `./cygnet.sh check` geçti; Chromium E2E 21/21; DM yanıt schedule, read receipt ve seen follow-up kararları izole DB'de doğrulandı
+- Şu an yapılan iş: DM değişikliğini raporlayıp private main'e commit/push etme
+- Sıradaki adım: uygulamayı yeniden başlat; açık DM sayfası yeni mesajları alır, gelen DM'ler kişiye göre dakikalar içinde yanıt sırasına girer
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
-- Sonuç raporları: `reports/2026-11-14-empty-launch-verification.md`, `reports/2026-11-14-invalid-orchestrator-target.md`
+- Sonuç raporları: `reports/2026-11-14-empty-launch-verification.md`, `reports/2026-11-14-invalid-orchestrator-target.md`, `reports/2026-11-14-dm-seen-replies.md`
 
 ## İşler
 

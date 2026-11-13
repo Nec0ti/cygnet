@@ -74,6 +74,16 @@ try {
   assert.equal((await action('comment.create', { actorId: three.id, postId: personaPost.value.result.id, parentId: humanComment.value.result.id, content: 'A test reply' })).response.status, 200);
   const dm = await action('message.send', { actorId: human, recipientId: one.id, content: 'Test message' });
   assert.equal(dm.response.status, 200);
+  const dmAccount=(await request('/api/export')).value.accounts.find((account)=>account.id===one.id);
+  assert.ok(Date.parse(dmAccount.dm_due_at)>Date.now(),'an inbound human DM schedules a persona response');
+  const dmReply=await action('message.send',{actorId:one.id,recipientId:human,content:'I saw your message.'});
+  assert.equal(dmReply.response.status,200);
+  assert.equal((await action('message.read',{actorId:human,conversationId:dm.value.result.conversationId})).value.result.count,1);
+  assert.equal((await action('message.read',{actorId:two.id,conversationId:dm.value.result.conversationId})).response.status,404);
+  assert.equal((await action('message.read',{actorId:one.id,conversationId:dm.value.result.conversationId})).value.result.count,1);
+  const dmExport=(await request('/api/export')).value;
+  assert.ok(dmExport.messages.find((message)=>message.id===dm.value.result.id).read_at,'AI reading a human DM persists its receipt');
+  assert.ok(dmExport.accounts.find((account)=>account.id===one.id).seen_due_at,'human reading an AI DM schedules a personality follow-up decision');
   const generatedBytes=Buffer.from('isolated generated DM image'),generatedFilename='generated-dm.png',generatedHash=createHash('sha256').update(generatedBytes).digest('hex');
   mkdirSync(join(temp,'media'),{recursive:true});writeFileSync(join(temp,'media',generatedFilename),generatedBytes);
   const generatedDm=await action('message.send',{actorId:one.id,recipientId:two.id,content:'Photo from AI to AI',mediaFilename:generatedFilename,imagePrompt:'A candid photo',imageSha256:generatedHash});

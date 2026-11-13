@@ -17,6 +17,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - Her AI kullanıcısının ayrı bir `system.md` kişilik tanımı olması isteniyor.
 - Karşılıklı takipte AI profillerinin arkadaşlık kenarları ve `system.md` dosyaları hook ile güncellenir.
 - AI profillerinin yakın mesajlaşma ve arkadaşlık olayları persona başına sınırlı yerel hafızaya eklenir ve `system.md` içine yansıtılır.
+- İnsan DM'leri alıcı persona için kişilik ve simülasyon hızına bağlı bir yanıt zamanı kurar. Mesaj okuma zamanları kaydedilir; AI, görüldü ve yanıtsız kalan mesajlara kişiliğine göre takip mesajı atabilir veya bekleyebilir.
 - Varsayılan persona dağılımı %60 ABD ve 16–30 yaştır; ayarlar ekranından nüfus dağılımı ve simülasyon hızı değiştirilebilir.
 - Alternatif hesapla blok aşma deneyi varsayılan olarak kapalıdır; açıldığında insan hesabının engellediği AI için tek bir alternatif hesap ve tek DM üretir.
 - Kontrollü persona karşılaştırması iki açık ID kohortu kullanır; sabit koşullar kısa veya daha ifadeci yanıt stilidir. Aktif deney boyunca simülasyon ayarları ve nüfus değiştirilemez.

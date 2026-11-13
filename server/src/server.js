@@ -100,7 +100,7 @@ function bootstrap() {
         WHERE m.conversation_id=? ORDER BY m.created_at`).all(c.id).map((m) => ({
           id:m.id, senderId:m.sender_id, username:m.username, content:m.deleted_at ? '' : m.content,
           deleted:Boolean(m.deleted_at), mediaUrl:m.media_filename ? `/media/${encodeURIComponent(m.media_filename)}` : null,
-          createdAt:m.created_at,
+          createdAt:m.created_at, readAt:m.read_at,
         })) }));
   return { me, accounts, posts, stories, notifications, conversations };
 }
@@ -127,6 +127,11 @@ function requireText(value, field, max = 5000, allowEmpty = false) {
     throw Object.assign(new Error(`${field} must be a${allowEmpty ? ' string' : ' non-empty string'} up to ${max} characters`),{status:400});
   }
   return value.trim();
+}
+function personaReplyDelayMs(account, baseMinutes = 14) {
+  const traits=JSON.parse(account.traits_json||'{}');
+  const offset=Math.round((Number(traits.shyness??50)-Number(traits.sociability??50)-Number(traits.impulsivity??50))/8);
+  return Math.max(2,Math.min(35,baseMinutes+offset+Math.floor(Math.random()*5)))*60_000/(readSettings(DB).speedMultiplier||1);
 }
 function accountId(value) {
   if (typeof value !== 'string' || !accountStmt.get(value)) throw Object.assign(new Error('Account not found'),{status:404});
@@ -282,13 +287,35 @@ export function action({ type, payload = {} }) {
         DB.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,media_filename,image_prompt,image_sha256,created_at) VALUES(?,?,?,?,?,?,?,?)')
           .run(msgId,convoId,sender,content,filename,imagePrompt,imageSha256,isoNow());
         notify(recipient,sender,'message',msgId); logEvent(DB,sender,'message.sent',{conversationId:convoId,messageId:msgId,hasMedia:Boolean(filename)});
-        DB.prepare('UPDATE accounts SET last_contact_at=?,retry_at=NULL WHERE id=? AND is_human=0').run(isoNow(),recipient);
+        const recipientAccount=accountStmt.get(recipient);
+        if(!recipientAccount.is_human) {
+          const replyDue=new Date(Date.now()+personaReplyDelayMs(recipientAccount)).toISOString();
+          DB.prepare(`UPDATE accounts SET last_contact_at=?,retry_at=NULL,seen_due_at=NULL,
+            dm_due_at=CASE WHEN dm_due_at IS NULL OR dm_due_at<=? OR dm_due_at>? THEN ? ELSE dm_due_at END WHERE id=?`).run(isoNow(),isoNow(),replyDue,replyDue,recipient);
+        }
         for(const personId of [sender,recipient]) if(!accountStmt.get(personId).is_human) {
           const other=personId===sender?recipient:sender;
           rememberPersona(DB,personId,other,'Exchanged direct messages');
           makeSystemMd(personId);
         }
         result={id:msgId,conversationId:convoId}; break;
+      }
+      case 'message.read': {
+        const reader=actorId(payload),conversationId=requireText(payload.conversationId,'conversationId',100);
+        if(!DB.prepare('SELECT 1 FROM conversation_members WHERE conversation_id=? AND account_id=?').get(conversationId,reader))
+          throw Object.assign(new Error('Conversation not found'),{status:404});
+        const unread=DB.prepare(`SELECT DISTINCT sender_id FROM messages WHERE conversation_id=? AND sender_id!=? AND read_at IS NULL AND deleted_at IS NULL`).all(conversationId,reader);
+        const readAt=isoNow();
+        DB.prepare('UPDATE messages SET read_at=? WHERE conversation_id=? AND sender_id!=? AND read_at IS NULL AND deleted_at IS NULL').run(readAt,conversationId,reader);
+        if(reader===HUMAN_ID) for(const {sender_id} of unread) {
+          const sender=accountStmt.get(sender_id);
+          if(sender&&!sender.is_human) {
+            const seenDue=new Date(Date.now()+personaReplyDelayMs(sender,18)).toISOString();
+            DB.prepare('UPDATE accounts SET seen_due_at=CASE WHEN seen_due_at IS NULL OR seen_due_at>? THEN ? ELSE seen_due_at END WHERE id=?').run(seenDue,seenDue,sender_id);
+          }
+        }
+        if(unread.length) logEvent(DB,reader,'message.read',{conversationId,count:unread.length});
+        result={count:unread.length,readAt}; break;
       }
       case 'message.delete': {
         const message=DB.prepare('SELECT * FROM messages WHERE id=?').get(payload.messageId);
