@@ -76,9 +76,11 @@ try {
   assert.equal(dm.response.status, 200);
   const dmAccount=(await request('/api/export')).value.accounts.find((account)=>account.id===one.id);
   assert.ok(Date.parse(dmAccount.dm_due_at)>Date.now(),'an inbound human DM schedules a persona response');
+  assert.ok(Date.parse(dmAccount.human_reply_due_at)>Date.now(),'an inbound human DM retains its own reply opportunity');
   assert.ok(Date.parse(dmAccount.read_due_at)>Date.now(),'an inbound human DM schedules an independent persona read decision');
   const dmReply=await action('message.send',{actorId:one.id,recipientId:human,content:'I saw your message.'});
   assert.equal(dmReply.response.status,200);
+  assert.equal((await request('/api/export')).value.accounts.find((account)=>account.id===one.id).human_reply_due_at,null,'a persona reply clears its pending human reply opportunity');
   assert.equal((await action('message.read',{actorId:human,conversationId:dm.value.result.conversationId})).value.result.count,1);
   assert.equal((await action('message.read',{actorId:two.id,conversationId:dm.value.result.conversationId})).response.status,404);
   assert.equal((await action('message.read',{actorId:one.id,conversationId:dm.value.result.conversationId})).value.result.count,1);

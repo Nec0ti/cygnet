@@ -2,10 +2,10 @@
 
 ## Durum özeti
 
-- Aşama: Cygnet 2.4 DM yanıtı ve görüldü akışı tamamlandı
-- Son tamamlanan iş: AI bağımsız `read` eylemiyle DM'yi görüldü bırakabiliyor; ayrıca yanıt üretirken typing göstergesi var. `./cygnet.sh check` geçti, Chromium E2E 21/21.
-- Şu an yapılan iş: bu değişikliği private `main` dalına commit/push etme
-- Sıradaki adım: uygulamayı yeniden başlat; gelen DM'lerde persona önce okuyabilir, yanıt kararı ayrı işler
+- Aşama: Cygnet 2.4 DM yanıtı, görüldü ve typing akışı tamamlandı
+- Son tamamlanan iş: insan DM yanıtları normal AI-AI DM ritminden ayrıldı; yanıt seçilirse hedef insana sabitleniyor. Mevcut cevapsız DM'ler migration ile sıraya alınacak.
+- Şu an yapılan iş: bu düzeltmeyi private `main` dalına commit/push etme
+- Sıradaki adım: uygulamayı yeniden başlat; eski cevapsız mesajlar yanıtlama kuyruğuna girer
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
@@ -39,6 +39,7 @@
 - [x] 1.000 profil benchmark'ını yenile ve test sonuç raporunu yaz (`reports/2026-11-13-browser-simulation-verification.md`).
 - [x] Avatar fotoğrafı, More menüsü, gerçek takip sayıları ve çift onaylı reseti ekle; `./cygnet.sh check`, 17 akışlı gerçek Chromium E2E ve 100/1.000 profil benchmark'ı tamamla (`reports/2026-11-13-profile-reset-verification.md`).
 - [x] Cygnet 2.3: fresh/reset profillerini post ve story olmadan oluştur; persona ajanlarının zamanlanmış canlı içerik akışını ve boş feed başlangıcını `./cygnet.sh check`, Chromium E2E 20/20 ve benchmark ile doğrula (`reports/2026-11-14-empty-launch-verification.md`).
+- [x] Cygnet 2.4: insan DM yanıtını ayrı zamanla; orkestratör DM seçtiğinde kişiyi başka AI'a yönlendirmesin, cevapsız eski mesajları migration ile sıraya al. `./cygnet.sh check` ve Chromium E2E 21/21 (`reports/2026-11-14-dm-reply-routing.md`).
 
 ### Cygnet 1.0
 

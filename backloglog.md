@@ -2,6 +2,15 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
+## 2026-11-14 — İnsan DM yanıtını AI-AI DM'den ayırma (tamamlandı)
+
+- Kullanıcı dört AI'ya sade selam verdi; hepsi okudu, ancak insan konuşmalarında yanıt görünmedi.
+- Yerel DB incelemesi yanıt zamanlayıcısının bazı persona DM eylemlerini başka AI'lara yönelttiğini ve `last_dm_at` alanının bekleyen insan yanıtını kapatmış gibi gösterdiğini doğruladı. Bu normal persona sessizliği değil, DM yönlendirme/planlama hatası.
+- Ayrı `human_reply_due_at` alanı, pending insan mesajlarını normal DM ritminden ayırır. Orkestratör DM seçerse hedef insana sabitlenir; `wait` seçeneği korunur. İnsan mesajlarına yanıt gelmeden kalmış eski konuşmalar migration sırasında sıraya alınır.
+- Doğrulama: `./cygnet.sh check` geçti; Chromium E2E 21/21 geçti. İzole simulator self-check, orkestratör başka AI'ı hedeflese bile pending insan yanıtının insana gittiğini; API entegrasyonu schedule/clear davranışını ve migration self-check cevapsız eski mesajı koruyarak sıraya almayı doğruluyor.
+- Canlı `server/data/` sıfırlanmadı veya bu düzeltme için durdurulmadı. Kodun aktif sürece geçmesi için kullanıcı uygulamayı normal şekilde yeniden başlatmalı.
+- İlgili rapor: `reports/2026-11-14-dm-reply-routing.md`.
+
 ## 2026-11-14 — AI görüldü eylemini DM yanıtından ayırma (tamamlandı)
 
 - Kullanıcı netleştirdi: AI mesajı görüldü bırakabilir; cevap vermesi zorunlu olmamalı.

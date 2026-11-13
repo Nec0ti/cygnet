@@ -9,10 +9,10 @@ import { Simulator } from './simulator.js';
 const temp=mkdtempSync(join(tmpdir(),'cygnet-image-check-'));
 const db=openStore(':memory:');
 const due=new Date().toISOString();
-let target='human',nextKind='dm',generated=0,applied=[],typingObserved=false;
+let target='u0002',nextKind='dm',generated=0,applied=[],typingObserved=false;
 const runner={
   runOrchestrator:async()=>({response:JSON.stringify({assignments:[{personaId:'u0001',kind:nextKind,targetId:target}]})}),
-  runPersona:async()=>{if(nextKind==='dm'&&target==='human')typingObserved=Date.parse(db.prepare("SELECT typing_until FROM accounts WHERE id='u0001'").get().typing_until)>Date.now();return {response:JSON.stringify(nextKind==='evade_block'
+  runPersona:async()=>{if(nextKind==='dm')typingObserved=Date.parse(db.prepare("SELECT typing_until FROM accounts WHERE id='u0001'").get().typing_until)>Date.now();return {response:JSON.stringify(nextKind==='evade_block'
     ?{profile:{name:'Alternate Test Person',username:'alternate.test.person',bio:'A new local identity.'},content:'Hi.'}
     :['post','story'].includes(nextKind)
       ?{caption:`Live ${nextKind} from the persona.`,imagePrompt:`A unique live ${nextKind} image.`}
@@ -22,11 +22,12 @@ const runner={
 try {
   seedStore(db,{dataRoot:temp});
   db.prepare('UPDATE accounts SET post_due_at=NULL,story_due_at=NULL,dm_due_at=NULL,engagement_due_at=NULL,retry_at=NULL WHERE is_human=0').run();
-  db.prepare("UPDATE accounts SET dm_due_at=?,activity_json=? WHERE id='u0001'").run(due,JSON.stringify({dmInitiation:'frequent'}));
+  db.prepare("UPDATE accounts SET dm_due_at=?,human_reply_due_at=?,activity_json=? WHERE id='u0001'").run(due,due,JSON.stringify({dmInitiation:'frequent'}));
   const simulator=new Simulator({db,applyAction:(action)=>{applied.push(action);return {ok:true};},mediaDir:temp,dataDir:temp,runner,now:()=>Date.now()});
   assert.equal((await simulator.tick()).processed,1);
   assert.ok(typingObserved,'a persona displays typing while composing a human DM');
   assert.equal(db.prepare("SELECT typing_until FROM accounts WHERE id='u0001'").get().typing_until,null,'typing clears after the message is sent');
+  assert.equal(db.prepare("SELECT human_reply_due_at FROM accounts WHERE id='u0001'").get().human_reply_due_at,null,'a reply clears its dedicated human-reply opportunity');
   assert.equal(applied[0].type,'message.send');
   assert.equal(applied[0].payload.recipientId,'human');
   assert.match(applied[0].payload.mediaFilename,/\.png$/);

@@ -50,6 +50,18 @@ try {
   resetSeedStore(db,{dataRoot:temp});
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM posts').get().n,0,'reset must restore profiles without content');
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM accounts WHERE is_human=0').get().n,100);
+  const migrationPath=join(temp,'legacy.sqlite');
+  const legacy=openStore(migrationPath);
+  seedStore(legacy,{dataRoot:temp});
+  legacy.prepare('INSERT INTO conversations VALUES(?,?)').run('legacy-dm',new Date().toISOString());
+  legacy.prepare('INSERT INTO conversation_members VALUES(?,?)').run('legacy-dm','human');
+  legacy.prepare('INSERT INTO conversation_members VALUES(?,?)').run('legacy-dm','u0001');
+  legacy.prepare('INSERT INTO messages(id,conversation_id,sender_id,content,created_at) VALUES(?,?,?,?,?)').run('legacy-message','legacy-dm','human','Unanswered legacy message',new Date().toISOString());
+  legacy.exec('ALTER TABLE accounts DROP COLUMN human_reply_due_at');
+  legacy.close();
+  const migrated=openStore(migrationPath);
+  assert.ok(migrated.prepare("SELECT human_reply_due_at FROM accounts WHERE id='u0001'").get().human_reply_due_at,'migration queues an unanswered human DM without clearing existing conversations');
+  migrated.close();
   console.log('Cygnet seed self-check passed.');
 } finally {
   db.close();

@@ -76,3 +76,9 @@ Sürüm kapsamı `todos.md` içinde. Ürün başlangıç kararları onaylandı; 
 - Persona insan için DM üretirken sohbet ekranında persona adına göre typing göstergesi gösterilir; aktif simülatör turu tamamlanınca durum temizlenir.
 - Conversation açıldığında karşı mesajların `read_at` değeri kaydedilir. AI mesajı insan tarafından okunup yanıtsız bırakılırsa ilgili persona daha sonra takip DM'si atmayı veya beklemeyi seçebilir; metin suçlayıcı/tehditkar baskıya yönlendirilmez.
 - Mesajlaşma sayfası açıkken yeni DM'ler 5 saniyede bir alınır. Read receipt kullanıcı veritabanında mesajla birlikte tutulur.
+
+## 2.5 İnsan DM yanıtı yönlendirme hatası — 2026-11-14
+
+- Kullanıcının birkaç AI'ya gönderdiği basit selamların tümü okundu; yanıtlar görünmedi. Yerel olay kaydı, bazı persona `dm` eylemlerinin insana değil AI arkadaşlara gittiğini gösterdi. Ortak `dm_due_at` / `last_dm_at` nedeniyle AI-AI DM insan yanıt fırsatını ileri tarihe atabiliyordu.
+- İnsan için ayrı `human_reply_due_at` alanı eklendi. Orkestratör `dm` seçerse hedef insan olarak doğrulanır; persona `wait` seçip yanıt vermeyebilir. Eski DB migration'ı konuşmadaki yanıtsız insan mesajlarını ilk açılışta sıraya alır.
+- Düzeltme sonrası `./cygnet.sh check` ve Chromium E2E 21/21 geçti. Gerçek deney DB'si resetlenmedi.

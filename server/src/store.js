@@ -19,7 +19,7 @@ export function openStore(path = DB_PATH) {
       country TEXT NOT NULL DEFAULT '', is_human INTEGER NOT NULL DEFAULT 0,
       tone TEXT NOT NULL DEFAULT '', traits_json TEXT NOT NULL DEFAULT '{}',
       extra_notes TEXT NOT NULL DEFAULT '', activity_json TEXT NOT NULL DEFAULT '{}',
-      post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, engagement_due_at TEXT,
+      post_due_at TEXT, story_due_at TEXT, dm_due_at TEXT, human_reply_due_at TEXT, engagement_due_at TEXT,
       last_post_at TEXT, last_story_at TEXT, last_dm_at TEXT, last_contact_at TEXT, read_due_at TEXT, seen_due_at TEXT, typing_until TEXT,
       retry_at TEXT, system_md TEXT NOT NULL DEFAULT '', avatar_filename TEXT, is_paused INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
@@ -79,9 +79,10 @@ export function openStore(path = DB_PATH) {
     CREATE INDEX IF NOT EXISTS events_created_idx ON events(created_at DESC);
   `);
   const columns = new Set(db.prepare('PRAGMA table_info(accounts)').all().map((column) => column.name));
+  const migrateHumanReplyDueAt=!columns.has('human_reply_due_at');
   for (const [name, definition] of Object.entries({
     activity_json: "TEXT NOT NULL DEFAULT '{}'", post_due_at: 'TEXT', story_due_at: 'TEXT',
-    dm_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
+    dm_due_at: 'TEXT', human_reply_due_at: 'TEXT', engagement_due_at: 'TEXT', last_post_at: 'TEXT', last_story_at: 'TEXT',
     last_dm_at: 'TEXT', last_contact_at: 'TEXT', read_due_at: 'TEXT', seen_due_at: 'TEXT', typing_until: 'TEXT', retry_at: 'TEXT', alias_of: 'TEXT REFERENCES accounts(id)',
     evade_due_at: 'TEXT', retry_count: 'INTEGER NOT NULL DEFAULT 0', retry_error: 'TEXT',
     avatar_filename: 'TEXT',
@@ -93,6 +94,17 @@ export function openStore(path = DB_PATH) {
   const messageColumns=new Set(db.prepare('PRAGMA table_info(messages)').all().map((column)=>column.name));
   for(const [name,definition] of Object.entries({image_prompt:'TEXT',image_sha256:'TEXT',read_at:'TEXT'}))
     if(!messageColumns.has(name)) db.exec(`ALTER TABLE messages ADD COLUMN ${name} ${definition}`);
+  if(migrateHumanReplyDueAt) {
+    const dueAt=new Date().toISOString();
+    db.prepare(`UPDATE accounts SET human_reply_due_at=? WHERE is_human=0 AND EXISTS (
+      SELECT 1 FROM conversation_members persona
+      JOIN conversation_members human ON human.conversation_id=persona.conversation_id AND human.account_id='human'
+      JOIN messages incoming ON incoming.conversation_id=persona.conversation_id AND incoming.sender_id='human'
+      WHERE persona.account_id=accounts.id AND incoming.deleted_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM messages reply WHERE reply.conversation_id=incoming.conversation_id
+          AND reply.sender_id=accounts.id AND reply.deleted_at IS NULL AND reply.created_at>incoming.created_at)
+    )`).run(dueAt);
+  }
   const reportColumns=new Set(db.prepare('PRAGMA table_info(reports)').all().map((column)=>column.name));
   if(!reportColumns.has('status')) db.exec("ALTER TABLE reports ADD COLUMN status TEXT NOT NULL DEFAULT 'open'");
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings(key,value,updated_at) VALUES(?,?,?)');

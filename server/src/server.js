@@ -297,6 +297,11 @@ export function action({ type, payload = {} }) {
             read_due_at=CASE WHEN read_due_at IS NULL OR read_due_at<=? OR read_due_at>? THEN ? ELSE read_due_at END,
             dm_due_at=CASE WHEN dm_due_at IS NULL OR dm_due_at<=? OR dm_due_at>? THEN ? ELSE dm_due_at END WHERE id=?`)
             .run(contactedAt,now,readDue,readDue,now,replyDue,replyDue,recipient);
+          if(sender===HUMAN_ID) DB.prepare(`UPDATE accounts SET human_reply_due_at=
+            CASE WHEN human_reply_due_at IS NULL OR human_reply_due_at<=? OR human_reply_due_at>? THEN ? ELSE human_reply_due_at END WHERE id=?`)
+            .run(now,replyDue,replyDue,recipient);
+        } else if(sender!==HUMAN_ID) {
+          DB.prepare('UPDATE accounts SET human_reply_due_at=NULL WHERE id=?').run(sender);
         }
         for(const personId of [sender,recipient]) if(!accountStmt.get(personId).is_human) {
           const other=personId===sender?recipient:sender;
