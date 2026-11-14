@@ -13,6 +13,7 @@
 - CI düzeltmeleri: simulator SQLite değerleri Node 22 ile uyumlu hale getirildi; electron-builder'ın tag sırasında otomatik publish etmesi kapatıldı; paket içindeki `seed/generate.mjs` eklendi; UtilityProcess çıkış kontrolü `exitCode` yerine exit event'ini izliyor.
 - Kod kontrolleri: `./cygnet.sh check`, Node 22 CI ve gerçek Chromium 156 E2E 22/22 geçti. Linux paket Xvfb smoke-testinden geçti; GitHub Release `v0.1.0 — First Flight` beş asset ve SHA-256 manifest ile oluşturuldu. Repo private kaldı; visibility değişikliği kullanıcıda.
 - Kullanıcı MIT lisansını seçti. `LICENSE`, root package metadata, README, contributor ve release belgeleri MIT'e güncellendi; README/release notlarında Windows 10/11'de manuel çalıştırma testi yapılmadığı yazıldı. v0.1.0 asset'leri yeniden build edilip mevcut release üzerinde değiştirildi; MIT dosyası app paketine eklendi ve manifest yeni asset digest'leriyle eşleşiyor.
+- Public öncesi tarama: gerçek ad, kişisel e-posta, ev dizini yolu veya özel test verisi tracked dosyalarda bulunmadı. Kullanıcı GitHub handle'ı README/rapor URL'lerinde ve Windows appId'de gereksiz yere yer alıyordu; metinlerden kaldırıldı, appId `org.cygnet.social` yapıldı. `.gitignore` env, DB/WAL, data, medya, export/backup, log, test/build çıktıları ve anahtar dosyalarını kapsayacak şekilde genişletildi. Handle GitHub owner/commit metadata'sında hâlâ görünür.
 
 ## 2026-11-14 — DM devam penceresi ve hızlı cevap (tamamlandı)
 

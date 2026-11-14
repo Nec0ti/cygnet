@@ -1,13 +1,51 @@
+# Credentials and local configuration
 .env
 .env.*
 !.env.example
-*.sqlite
-*.sqlite3
-*.db
+!**/.env.example
+.envrc
+.npmrc
+credentials.json
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Cygnet's private database, prompts, media, and user uploads
+/server/data/
 data/
 uploads/
 generated_images/
+exports/
+backups/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-*
+*.csv
+*.jsonl
+
+# Local build, test, and runtime output
 node_modules/
 dist/
 release/
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+.cache/
+*.log
+*.pid
+*.tmp
+*.bak
+*.trace.zip
+
+# Operating-system files
 .DS_Store
+Thumbs.db
+Desktop.ini

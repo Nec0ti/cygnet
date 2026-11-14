@@ -2,15 +2,15 @@
 
 ## Durum özeti
 
-- Aşama: v0.1.0 desktop release tamamlandı; public repository için kullanıcı incelemesi bekleniyor.
+- Aşama: public öncesi gizlilik taraması; v0.1.0 paket kimliği genel Cygnet adına taşınıyor.
 - Son tamamlanan iş: bildirim follow state hatası düzeltildi; Electron desktop shell ve dokümantasyon eklendi; `v0.1.0 — First Flight` release'i yayımlandı.
 - Doğrulama: `./cygnet.sh check` ve Node 22 CI geçti; Chromium 156 E2E 22/22; Windows setup + portable ve Linux `.deb` + AppImage build edildi; Linux paket smoke-test ve SHA-256 manifest kontrolü geçti.
-- Şu an yapılan iş: MIT lisanslı v0.1.0 paketleri mevcut GitHub Release'e yüklendi; README/release notları güncellendi.
-- Sıradaki adım: public'e geçmeden önce kullanıcı incelemesi. Repo görünürlüğünü yalnız kullanıcı değiştirecek.
+- Şu an yapılan iş: kaynak ve raporlardan kullanıcı tanımlayıcıları kaldırıldı; `.gitignore` yerel veriler ve sırlar için genişletildi.
+- Sıradaki adım: yeni genel uygulama kimliğiyle Windows/Linux release paketlerini yeniden üret, checksum'ları kontrol et ve repo görünürlüğünü kullanıcı incelemesine bırak.
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
-- Release sınırı: Windows installer ve portable `.exe` native `windows-latest` runner'ında başarıyla üretildi ancak Windows GUI oturumunda çalıştırılmadı. İmzalama sertifikası yok.
+- Release sınırı: Windows installer ve portable `.exe` native `windows-latest` runner'ında üretildi ancak Windows GUI oturumunda çalıştırılmadı. İmzalama sertifikası yok.
 - Kod lisansı MIT; Windows paketleri CI ile üretildi ama Windows GUI oturumunda denenmedi.
 - Sonuç raporları: `reports/2026-11-14-empty-launch-verification.md`, `reports/2026-11-14-invalid-orchestrator-target.md`, `reports/2026-11-14-dm-seen-replies.md`
 

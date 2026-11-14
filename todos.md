@@ -10,6 +10,7 @@
 - [x] `SHA256SUMS.txt` üretimi ve release asset digest'leri ile karşılaştırma.
 - [x] MIT lisansını kaynak dosyaya, npm metadata'sına ve proje belgelerine ekleme.
 - [x] Windows 10/11 gerçek açılış testinin yapılmadığını README ve release notlarında belirtme.
+- [x] Public öncesi tracked dosya/rapor taraması ve yerel veri/sır kuralları için `.gitignore` doğrulaması.
 
 Sürüm etiketi `v0.1.0`, başlık **First Flight**. Bu release imzasız preview olacak; Windows kod imzası yok. Ayrıntı `docs/releases/v0.1.0.md`.
 

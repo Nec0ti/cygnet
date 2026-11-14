@@ -23,7 +23,7 @@
     "minimatch": "^11.0.1"
   },
   "build": {
-    "appId": "io.github.nec0ti.cygnet",
+    "appId": "org.cygnet.social",
     "productName": "Cygnet",
     "directories": {
       "output": "release"

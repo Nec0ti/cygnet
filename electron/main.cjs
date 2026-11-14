@@ -2,7 +2,7 @@ const { app, BrowserWindow, dialog, utilityProcess } = require('electron')
 const { createServer } = require('node:net')
 const path = require('node:path')
 
-app.setAppUserModelId('io.github.nec0ti.cygnet')
+app.setAppUserModelId('org.cygnet.social')
 const singleInstance = app.requestSingleInstanceLock()
 if (!singleInstance) app.quit()
 
