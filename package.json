@@ -1,0 +1,94 @@
+{
+  "name": "cygnet",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A local-first social network simulation inhabited by AI personas",
+  "author": "Cygnet Maintainers",
+  "license": "UNLICENSED",
+  "desktopName": "cygnet",
+  "engines": { "node": ">=22.5" },
+  "main": "electron/main.cjs",
+  "scripts": {
+    "install:web": "npm --prefix web ci",
+    "build:web": "npm run install:web && npm --prefix web run build",
+    "start": "npm run build:web && electron .",
+    "dist:win": "npm run build:web && electron-builder --win nsis portable --x64",
+    "dist:linux": "npm run build:web && electron-builder --linux AppImage deb --x64"
+  },
+  "devDependencies": {
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
+  },
+  "build": {
+    "appId": "io.github.nec0ti.cygnet",
+    "productName": "Cygnet",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "server/src",
+        "to": "server/src",
+        "filter": [
+          "server.js",
+          "store.js",
+          "seed.js",
+          "simulator.js",
+          "visibility.js",
+          "media.js",
+          "friend-hook.js",
+          "report.js",
+          "experiments.js",
+          "usage.js"
+        ]
+      },
+      {
+        "from": "server/assets/profile-avatars",
+        "to": "server/assets/profile-avatars"
+      },
+      {
+        "from": "server/package.json",
+        "to": "server/package.json"
+      },
+      {
+        "from": "engine/codex-runner.mjs",
+        "to": "engine/codex-runner.mjs"
+      },
+      {
+        "from": "web/dist",
+        "to": "web/dist"
+      }
+    ],
+    "win": {
+      "icon": "assets/cygnet.ico",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "icon": "assets/cygnet.png",
+      "maintainer": "Cygnet Maintainers <noreply@github.com>",
+      "syncDesktopName": true,
+      "category": "Network",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    }
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true
+  }
+}

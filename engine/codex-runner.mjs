@@ -90,7 +90,7 @@ export class CodexRunner {
       delete env.OPENAI_BASE_URL;
       const startedAt = Date.now();
       const result = await new Promise((resolve, reject) => {
-        const child = spawn(this.cli, args, { cwd: this.cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
+        const child = spawn(this.cli, args, { cwd: this.cwd, env, shell: process.platform === 'win32', stdio: ['pipe', 'pipe', 'pipe'] });
         let stdout = '';
         let stderr = '';
         let timedOut = false;

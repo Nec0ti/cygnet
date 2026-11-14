@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { CodexRunner } from '../../engine/codex-runner.mjs';
 import { HUMAN_ID, logEvent, readSettings } from './store.js';
 import { activeCondition, ensureExperimentSchema } from './experiments.js';
@@ -10,6 +11,7 @@ const ORCHESTRATOR_MODEL=process.env.CYGNET_ORCHESTRATOR_MODEL||'gpt-6-luna';
 const PERSONA_MODEL=process.env.CYGNET_PERSONA_MODEL||'gpt-6-luna';
 const VALID_KINDS=new Set(['post','story','dm','read','like','comment','follow','evade_block','wait']);
 const DAY=24*60*60*1000;
+const PROJECT_ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PHOTO_CATEGORIES=['selfie','food and drink','hobby or creative work','friends together','outfit or everyday portrait','pet or meaningful object','shared activity','local place'];
 export function photoCategory(accountId, priorPhotos = 0) {
   const offset=[...accountId].reduce((sum,char)=>sum+char.charCodeAt(0),0)%PHOTO_CATEGORIES.length;
@@ -109,7 +111,7 @@ export class Simulator {
     this.db=db; this.applyAction=applyAction; this.mediaDir=mediaDir; this.now=now;
     this.maxPerTick=Math.max(1,Math.min(10,maxPerTick));
     this.tickMs=tickMs;
-    this.runner=runner||new CodexRunner({cwd:new URL('../../',import.meta.url).pathname,dataDir:dataDir||new URL('../data/',import.meta.url).pathname,maxConcurrent:10});
+    this.runner=runner||new CodexRunner({cwd:PROJECT_ROOT,dataDir:dataDir||join(PROJECT_ROOT,'server','data'),maxConcurrent:10});
     this.status={state:'stopped',lastTickAt:null,lastError:null,activePersonas:0,queued:0,maxActivePersonas:this.maxPerTick};
   }
 

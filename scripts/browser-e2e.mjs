@@ -239,6 +239,12 @@ try {
   await page.getByRole('button', { name: 'Notifications' }).click();
   await page.getByRole('heading', { name: 'Notifications' }).waitFor();
   await page.getByText('started following you.').waitFor();
+  const incomingFollow = page.locator('.notification-row').filter({ hasText: initial.accounts[2].username });
+  await incomingFollow.getByRole('button', { name: 'Follow', exact: true }).click();
+  await incomingFollow.getByRole('button', { name: 'Following', exact: true }).waitFor();
+  await incomingFollow.getByRole('button', { name: 'Following', exact: true }).click();
+  await incomingFollow.getByRole('button', { name: 'Follow', exact: true }).waitFor();
+  check('notification follow action reflects follow and unfollow state');
   await page.getByRole('button', { name: 'Mark all as read' }).click();
   await waitFor(async () => (await apiJson('/api/bootstrap')).value.notifications.every((item) => item.isRead), 'notifications marked read');
   check('follow, like, comment/reply notifications render and mark read');

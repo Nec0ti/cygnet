@@ -25,6 +25,9 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - Kontrollü persona karşılaştırması iki açık ID kohortu kullanır; sabit koşullar kısa veya daha ifadeci yanıt stilidir. Aktif deney boyunca simülasyon ayarları ve nüfus değiştirilemez.
 - Olay replay'i salt okunurdur; geçmiş takip, beğeni, yorum veya mesaj işlemlerini tekrar çalıştırmaz.
 - Uygulama ve medya yerelde saklanır. Codex CLI'ye verilen istek ve bağlam OpenAI hizmetine gider.
+- Desktop build Electron ile paketlenir; Windows 10/11 x64 installer/portable ve Linux `.deb`/AppImage hedeflenir. Codex CLI ve kullanıcının yerel oturumu pakete eklenmez.
+- Desktop API sadece `127.0.0.1`'e bağlanır; SQLite, medya ve prompt dosyaları işletim sisteminin kullanıcı veri klasöründe tutulur. Windows portable build'de veri klasörü exe yanındadır.
+- Release etiketi Semantic Versioning biçiminde `v0.1.0`; ilk masaüstü yayının kod adı **First Flight**.
 - Görseller Codex CLI yerleşik `imagegen` aracıyla üretilir; API key fallback kullanılmaz.
 - 18 yaş altı profiller için cinsel/erotik içerik, sexting ve cinsel görsel üretimi kapalıdır; yaşa uygun ilişki ve sağlık konuşmaları cinselleştirmeden yapılabilir. Yetişkin-minör cinsel etkileşimi engellenir.
 - Parola, API anahtarı, erişim belirteci veya başka gerçek sır bu depoya yazılmaz.

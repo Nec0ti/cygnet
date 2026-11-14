@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, unlinkSync, rmSync } from 'node:fs';
-import { basename, extname, join } from 'node:path';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, statSync, readdirSync, unlinkSync, rmSync } from 'node:fs';
+import { basename, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openStore, HUMAN_ID, DATA_ROOT, logEvent, saveSystemFile, transaction, readSettings, writeSettings, rememberPersona } from './store.js';
 import { seedStore, resetSeedStore } from './seed.js';
@@ -27,6 +27,7 @@ const MEDIA_DIR = join(DATA_ROOT, 'media');
 const PERSONAS_DIR = join(DATA_ROOT, 'personas');
 mkdirSync(MEDIA_DIR, { recursive: true });
 const PORT = Number(process.env.CYGNET_PORT || 4179);
+const STATIC_DIR = process.env.CYGNET_STATIC_DIR ? resolve(process.env.CYGNET_STATIC_DIR) : null;
 const TICK_MS=Math.max(1_000,Number(process.env.CYGNET_TICK_MS)||60_000);
 const MAX_BODY = 15 * 1024 * 1024;
 const OTHER_COUNTRIES=['Canada','United Kingdom','Mexico','Brazil','India','Japan','Nigeria','Türkiye','Germany','France','Australia','South Korea','Italy','Spain','South Africa','Philippines','Indonesia','Egypt','Argentina','Sweden'];
@@ -623,6 +624,23 @@ const server=createServer(async (req,res)=>{
       const body=readFileSync(join(MEDIA_DIR,name));
       res.writeHead(200,{'content-type':({'.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.gif':'image/gif'})[extname(name)]||'application/octet-stream','content-length':body.length,'cache-control':'private, max-age=3600',...cors});
       return res.end(body);
+    }
+    if(STATIC_DIR && req.method==='GET' && !url.pathname.startsWith('/api')) {
+      const requested=decodeURIComponent(url.pathname.slice(1));
+      const file=resolve(STATIC_DIR,requested||'index.html');
+      const pathFromRoot=relative(STATIC_DIR,file);
+      if(pathFromRoot!=='' && (pathFromRoot==='..'||pathFromRoot.startsWith(`..${sep}`)||pathFromRoot.startsWith(sep))) return send(res,404,{error:'Not found'},cors);
+      const asset=existsSync(file)&&statSync(file).isFile()&&readFileSync(file);
+      if(asset) {
+        const type=({'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.woff2':'font/woff2'})[extname(file)]||'application/octet-stream';
+        res.writeHead(200,{'content-type':type,'content-length':asset.length,'cache-control':file.endsWith('index.html')?'no-cache':'public, max-age=31536000, immutable',...cors});
+        return res.end(asset);
+      }
+      if(!url.pathname.startsWith('/media/')) {
+        const index=readFileSync(join(STATIC_DIR,'index.html'));
+        res.writeHead(200,{'content-type':'text/html; charset=utf-8','content-length':index.length,'cache-control':'no-cache',...cors});
+        return res.end(index);
+      }
     }
     return send(res,404,{error:'Not found'},cors);
   } catch(error) {

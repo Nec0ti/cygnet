@@ -9,6 +9,10 @@ import { setTimeout as sleep } from 'node:timers/promises';
 
 const temp = mkdtempSync(join(tmpdir(), 'cygnet-http-check-'));
 const serverDir = new URL('.', import.meta.url).pathname.replace(/src\/$/, '');
+const staticDir=join(temp,'static');
+mkdirSync(join(staticDir,'assets'),{recursive:true});
+writeFileSync(join(staticDir,'index.html'),'<title>Cygnet desktop test</title>');
+writeFileSync(join(staticDir,'assets','app.js'),'window.cygnetReady=true');
 async function freePort() {
   const probe = createServer();
   await new Promise((resolve, reject) => probe.listen(0, '127.0.0.1', resolve).once('error', reject));
@@ -22,7 +26,7 @@ try {
   const port = await freePort(), base = `http://127.0.0.1:${port}`;
   child = spawn(process.execPath, ['src/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000', CYGNET_DISABLE_SIMULATOR: '1' },
+    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_STATIC_DIR: staticDir, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000', CYGNET_DISABLE_SIMULATOR: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -38,6 +42,13 @@ try {
     await sleep(100);
   }
   assert.ok(ready, `Isolated server did not become ready: ${output}`);
+  assert.match(await (await fetch(base)).text(),/Cygnet desktop test/);
+  const staticAsset=await fetch(`${base}/assets/app.js`);
+  assert.equal(staticAsset.headers.get('content-type'),'text/javascript; charset=utf-8');
+  assert.equal(await staticAsset.text(),'window.cygnetReady=true');
+  assert.match(await (await fetch(`${base}/person/u0001`)).text(),/Cygnet desktop test/,'unknown browser routes should load the SPA shell');
+  assert.equal((await fetch(`${base}/api/not-a-route`)).status,404,'unknown API routes should remain API 404s');
+  assert.equal((await fetch(`${base}/%2e%2e%2fsecret`)).status,404,'static paths must stay inside the packaged web directory');
 
   const request = async (path, method = 'GET', body, headers = {}) => {
     const response = await fetch(`${base}${path}`, {
@@ -167,7 +178,7 @@ try {
   assert.equal(firstExit, 0, `graceful shutdown failed: ${output}`);
   child = spawn(process.execPath, ['src/server.js'], {
     cwd: serverDir,
-    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000', CYGNET_DISABLE_SIMULATOR: '1' },
+    env: { ...process.env, CYGNET_DATA_DIR: temp, CYGNET_STATIC_DIR: staticDir, CYGNET_PORT: String(port), CYGNET_TICK_MS: '3600000', CYGNET_DISABLE_SIMULATOR: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let restartedReady = false;
@@ -183,7 +194,7 @@ try {
   child.kill('SIGTERM');
   assert.equal(await new Promise((resolve) => child.once('exit', (code) => resolve(code))), 0);
   child = null;
-  console.log('Isolated HTTP integration, action matrix, usage session, and restart checks passed.');
+  console.log('Isolated HTTP integration, packaged static UI, action matrix, usage session, and restart checks passed.');
 } finally {
   if (child && child.exitCode === null) { child.kill('SIGTERM'); await new Promise((resolve) => child.once('exit', resolve)); }
   rmSync(temp, { recursive: true, force: true });

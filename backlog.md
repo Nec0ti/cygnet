@@ -2,13 +2,16 @@
 
 ## Durum özeti
 
-- Aşama: Cygnet 2.4 DM yanıtı, görüldü, typing ve devam penceresi tamamlandı
-- Son tamamlanan iş: AI yanıtından sonra 60 saniye hızlı devam penceresi eklendi; pencere içindeki follow-up DM hemen tetiklenir, süre aşımında persona normal gecikmeye döner.
-- Şu an yapılan iş: bu düzeltmeyi private `main` dalına commit/push etme
-- Sıradaki adım: uygulamayı yeniden başlat; yeni hesap alanı migration ile eklenir ve hızlı devam akışı çalışır.
+- Aşama: public repository hazırlığı ve v0.1.0 desktop release
+- Son tamamlanan iş: bildirim follow düğmesi gerçek follow state'e bağlandı; Electron desktop shell, Windows/Linux build config ve dokümantasyon eklendi.
+- Doğrulama: `./cygnet.sh check` geçti; Chromium 156 E2E 22/22; Linux x64 AppImage ve `.deb` üretildi.
+- Şu an yapılan iş: release workflow'u ve geçmişte kalan demo profil adının temizliğini doğrulama; Windows x64 installer/portable build GitHub Actions'ta çalıştırılacak.
+- Sıradaki adım: temizlenmiş `main`e commit/push, `v0.1.0` tag'i ve GitHub Actions release sonucunu doğrula. Repo public yapılmayacak; son visibility değişikliği kullanıcıda.
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
+- Release sınırı: Windows build başka bir işletim sisteminde yerel doğrulanamıyor; tag workflow'u `windows-latest` üzerinde paketleri üretip release'e ekleyecek. Windows installer henüz imzalanmıyor.
+- Lisans henüz seçilmedi; GitHub deposu public olsa bile kodu yeniden dağıtma/yeniden kullanma izni için lisans kararı gerekir.
 - Sonuç raporları: `reports/2026-11-14-empty-launch-verification.md`, `reports/2026-11-14-invalid-orchestrator-target.md`, `reports/2026-11-14-dm-seen-replies.md`
 
 ## İşler

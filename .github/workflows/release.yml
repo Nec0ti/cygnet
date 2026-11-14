@@ -1,0 +1,88 @@
+name: Build desktop release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix web ci
+      - run: ./cygnet.sh check
+
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            command: dist:win
+          - os: ubuntu-latest
+            command: dist:linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ${{ matrix.command }}
+      - name: Smoke-test the packaged Linux desktop app
+        if: runner.os == 'Linux'
+        env:
+          CYGNET_DISABLE_SIMULATOR: '1'
+          CYGNET_DESKTOP_SMOKE: '1'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+          xvfb-run -a release/linux-unpacked/cygnet --no-sandbox
+      - name: Collect release packages
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp release/*.exe release-assets/
+          else
+            cp release/*.AppImage release/*.deb release-assets/
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cygnet-${{ runner.os }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cygnet-*
+          path: release
+          merge-multiple: true
+      - name: Write checksums
+        run: cd release && sha256sum * > SHA256SUMS.txt
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -f "docs/releases/${TAG}.md" ]; then
+            gh release create "$TAG" release/* --title "Cygnet ${TAG}" --notes-file "docs/releases/${TAG}.md" --verify-tag
+          else
+            gh release create "$TAG" release/* --title "Cygnet ${TAG}" --generate-notes --verify-tag
+          fi

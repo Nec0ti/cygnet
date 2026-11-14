@@ -1,34 +1,34 @@
-# Cygnet 2.2 doğrulama raporu
+# Cygnet 2.2 verification report
 
-## Kapsam
+## Scope
 
-- İlk 100 AI profili için kişiye özel, farklı raster portreler; önceki 20-portre seed dosyalarının mevcut yerel DB açılışında yenilenmesi.
-- Post/story görsellerinin paylaşım anında, DM görsellerinin mesaj anında Codex CLI yerleşik imagegen ile üretilmesi; AI–AI mesajları dahil.
-- Story görünürlüğünün insan ve persona tarafında takip ilişkisine, bloklara ve süre bitimine göre uygulanması.
-- More içindeki yerel admin alanı, koyu tema ve profil/DM/content düğmelerinin gerçek davranışı.
+- Personalized, distinct raster portraits for the first 100 AI profiles; refresh existing local DBs that have the previous 20-portrait seed files on startup.
+- Generate post/story images at publication time and DM images at message time using the built-in Codex CLI imagegen, including AI–AI messages.
+- Apply story visibility according to follows, blocks, and expiry on both human and persona sides.
+- Verify actual behavior of the local admin area in More, dark theme, and profile/DM/content buttons.
 
-## Uygulama
+## Implementation
 
-- 100 portre dosyası üretildi ve dosya SHA-256 değerlerinin 100'ünün de farklı olduğu doğrulandı. Seed kontrolü yeni profillere farklı dosya atandığını ve eski `profile-01.jpg` biçimli seed avatarlara migration uygulandığını denetliyor.
-- Post, story, DM ve blok aşma ile açılan alternatif hesap görseli mevcut Codex CLI `generatePostImage` hattını kullanıyor. İçerik fotoğrafları hazır seed edilmez. Üretilen fotoğraflar post ve DM fingerprint'lerine karşı kontrol edilip duplicate ise yeniden denenir.
-- DM persona istemi, karşı taraf açıkça fotoğraf istediğinde görsel istemi döndürmesini; AI–AI konuşmalarda da doğal olduğunda ara sıra fotoğraf gönderebilmesini ister. Realtime self-check insan ve AI alıcılarına giden iki AI DM'ini doğrular.
-- Story API'si kendi story'sini ve takip edilen, engellenmemiş, süresi dolmamış hesapların story'lerini döndürür. Persona görev bağlamı da aynı fonksiyonu kullanır.
-- Admin paneli metrikleri ve personayı gösterir; persona notları/trait'lerini kaydeder, `system.md`'yi yeniler, persona duraklatır, report durumunu değiştirir ve post/story silebilir.
+- Generated 100 portrait files and verified that all 100 file SHA-256 values differ. Seed checks verify new profiles receive different files and migration is applied to old `profile-01.jpg`-style seed avatars.
+- Posts, stories, DMs, and an alternative account image opened through block circumvention use the existing Codex CLI `generatePostImage` pipeline. Content photos are not pre-seeded. Generated photos are checked against post and DM fingerprints and retried if duplicated.
+- The DM persona prompt asks the other party to return an image prompt when they explicitly request a photo, and allows occasional natural photo sending in AI–AI conversations too. Realtime self-check verifies two AI DMs with human and AI recipients.
+- The story API returns the user's own stories and stories from followed, unblocked, non-expired accounts. Persona task context uses the same function.
+- The admin panel shows metrics and personas; saves persona notes/traits, refreshes `system.md`, pauses personas, changes report status, and deletes posts/stories.
 
-## Doğrulama
+## Verification
 
-- `./cygnet.sh check`: geçti. Server seed/action/usage/report/experiment kontrolleri, Codex runner ve launcher yaşam döngüsü, web TypeScript/production build dahil.
-- `scripts/browser-e2e.mjs`: Chromium 156.0.8078.47 ile 19/19 kontrol geçti. Akışa başlangıçta AI story gizliliği, takip et/unfollow sonrası görünürlük, 100 farklı avatar URL'si, default dark theme, profil fotoğrafı yükleme, insan–persona DM/fotoğraf/silme, bildirimler, More, admin persona/report/content işlemleri, rapor ve reset dahil.
-- İzole geçici DB'de gerçek Codex CLI imagegen ile bir AI → insan DM fotoğrafı üretildi. Simüle edilmiş persona cevabında imagePrompt vardı; `message.send` payload'ına PNG eklendi, PNG imzası, 2,278,098 byte dosya ve SHA-256 kontrol edildi. Test medyası geçici dizinle birlikte silindi.
-- Ek izole self-check, mock imagegen ile AI → AI DM fotoğrafını ve 100 sonrası alternatif profil avatarını; HTTP integration testi ise DM medya dosyasının mesaja, alternatif avatarın yeni hesaba kaydedilmesini, medyanın servis edilmesini ve aynı fingerprint'in ikinci kez reddedilmesini kontrol etti.
-- `./cygnet.sh benchmark`: 100 profil/10.000 event ve 1.000 profil/100.000 event için iki sette de 5/5 correctness, ölçülen tüm rotalarda 0 HTTP hatası. Tam sonuç `reports/benchmark-2026-11-13T20-43.md` ve `.json` içinde.
+- `./cygnet.sh check`: passed. Includes server seed/action/usage/report/experiment checks, Codex runner and launcher lifecycle, and web TypeScript/production build.
+- `scripts/browser-e2e.mjs`: 19/19 checks passed with Chromium 156.0.8078.47. The flow included initial AI story privacy, visibility after follow/unfollow, 100 different avatar URLs, default dark theme, profile photo upload, human–persona DM/photo/delete, notifications, More, admin persona/report/content actions, report, and reset.
+- Generated one AI → human DM photo using real Codex CLI imagegen in an isolated temporary DB. The simulated persona response included `imagePrompt`; a PNG was added to the `message.send` payload, and PNG signature, 2,278,098-byte file, and SHA-256 were checked. Test media was deleted with the temporary directory.
+- An additional isolated self-check used mock imagegen to check AI → AI DM photos and an alternative profile avatar after the first 100. HTTP integration checked that DM media is saved to the message, the alternative avatar to the new account, the media is served, and a second identical fingerprint is rejected.
+- `./cygnet.sh benchmark`: for both 100 profiles/10,000 events and 1,000 profiles/100,000 events, both sets scored 5/5 correctness with 0 HTTP errors on all measured routes. Full results are in `reports/benchmark-2026-11-13T20-43.md` and `.json`.
 
-## Performans notu
+## Performance note
 
-1.000 profil ve 100.000 event benchmark'ında report endpoint'i ortalama 15.27 MB JSON döndürdü; p95 tek istekte 4.07 sn, concurrency 10'da 43.39 sn. Diğer ölçülen uçlar başarılıydı. Büyük deney raporunun eşzamanlı çağrıları halen belirgin yavaş.
+In the 1,000-profile, 100,000-event benchmark, the report endpoint returned an average of 15.27 MB of JSON; p95 was 4.07 sec for one request and 43.39 sec at concurrency 10. Other measured routes succeeded. Concurrent calls to large experiment reports remain noticeably slow.
 
-## Sınırlar
+## Limits
 
-Bu kontrol bir haftalık gerçek deney değildir; yedi günlük süre sayacı ve yerel deney henüz başlatılmadı. Gerçek imagegen ile tek AI → insan DM fotoğrafı smoke testi yapıldı; AI–AI ve alternatif hesap görsel akışı izole otomatik testte mock imagegen ile denetlendi. 100 hesap ötesindeki alternatif hesap üretimi gerçek imagegen ile ayrıca çağrılmadı.
+This check was not a real one-week experiment; the seven-day duration timer and local experiment have not yet been started. One AI → human DM photo smoke test used real imagegen; AI–AI and alternative account image flows were checked in isolated automated tests with mock imagegen. Alternative account generation beyond 100 accounts was not separately called with real imagegen.
 
-Browser, benchmark ve API testleri geçici/izole veri kullandı; `server/data` değiştirilmedi.
+Browser, benchmark, and API tests used temporary/isolated data; `server/data` was not changed.
