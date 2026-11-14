@@ -62,6 +62,10 @@
         "to": "engine/codex-runner.mjs"
       },
       {
+        "from": "seed/generate.mjs",
+        "to": "seed/generate.mjs"
+      },
+      {
         "from": "web/dist",
         "to": "web/dist"
       }

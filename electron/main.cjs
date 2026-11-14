@@ -67,6 +67,11 @@ app.on('second-instance', () => {
 })
 app.on('before-quit', () => { app.isQuitting = true; api?.kill() })
 app.whenReady().then(() => singleInstance && start()).catch((error) => {
+  if (process.env.CYGNET_DESKTOP_SMOKE === '1') {
+    console.error(error)
+    app.exit(1)
+    return
+  }
   dialog.showErrorBox('Could not start Cygnet', `${error.message}\n\nCheck that Cygnet can write to its user data folder, then restart it.`)
   app.quit()
 })
