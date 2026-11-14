@@ -16,8 +16,9 @@
 - Chromium 156 browser E2E: 22/22 checks passed, including follow → following → follow in Notifications.
 - `npm audit --audit-level=moderate`: 0 vulnerabilities.
 - Linux x64 AppImage and `.deb` builder runs completed. The `.deb` control metadata and bundled runtime paths were inspected; experiment data is not included.
-- GitHub Actions release run `43635843272`: all jobs passed, including the Linux packaged-window smoke test under Xvfb.
-- Release `v0.1.0 — First Flight` was rebuilt from the MIT-licensed tag and contains Windows setup and portable executables, Linux `.deb` and AppImage files, and `SHA256SUMS.txt`. The manifest was downloaded and matches each binary asset's SHA-256 metadata.
+- GitHub Actions release run `43638365934`: all jobs passed, including the Linux packaged-window smoke test under Xvfb.
+- Release `v0.1.0 — First Flight` contains Windows setup and portable executables, Linux `.deb` and AppImage files, and `SHA256SUMS.txt`. All four downloaded binaries passed `sha256sum -c` against the published manifest.
+- A repository scan found no real name, personal email, home path, account ID, or account handle in tracked file contents, including reports. `.gitignore` protects local configuration, credentials, databases, media, exports, and build/test output; local `server/data/` is ignored and untracked.
 - CI found and fixed Node 22 SQLite boolean-binding compatibility, Electron Builder's automatic publishing attempt, the packaged seed-generator omission, and the Electron utility-process startup check.
 
 ## Limits
@@ -27,3 +28,4 @@
 - The release is unsigned and x64 only. AppImage requires working FUSE support on Linux.
 - The project is now MIT-licensed; see `LICENSE`.
 - `server/data/` remains on the local machine and is ignored by Git. The GitHub repository is still private; visibility has not been changed.
+- GitHub still displays the repository owner's account and the commit author account metadata. A strict no-account-identification requirement needs an organization/project account and, if prior commits must also be de-linked, a history rewrite before publication.
