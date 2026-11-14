@@ -7,6 +7,7 @@ const singleInstance = app.requestSingleInstanceLock()
 if (!singleInstance) app.quit()
 
 let api
+let apiExited = false
 let window
 
 function freePort() {
@@ -22,7 +23,7 @@ function freePort() {
 
 async function waitForApi(url) {
   for (let attempt = 0; attempt < 300; attempt++) {
-    if (api.exitCode !== null) throw new Error('The local Cygnet service stopped during startup.')
+    if (apiExited) throw new Error('The local Cygnet service stopped during startup.')
     try { if ((await fetch(`${url}/api/usage`)).ok) return } catch {}
     await new Promise((resolve) => setTimeout(resolve, 100))
   }
@@ -36,6 +37,7 @@ async function start() {
   const dataDir = process.env.PORTABLE_EXECUTABLE_DIR
     ? path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'Cygnet-data')
     : app.getPath('userData')
+  apiExited = false
   api = utilityProcess.fork(path.join(root, 'server', 'src', 'server.js'), [], {
     cwd: root,
       stdio: 'pipe',
@@ -48,8 +50,9 @@ async function start() {
   })
   api.stderr?.on('data', (chunk) => console.error(chunk.toString()))
   api.once('exit', (code) => {
+    apiExited = true
     if (process.env.CYGNET_DESKTOP_SMOKE === '1') console.error(`Cygnet service exit code: ${code}`)
-    if (code && !app.isQuitting) dialog.showErrorBox('Cygnet stopped', 'The local service stopped unexpectedly. Restart Cygnet to continue.')
+    if (code && !app.isQuitting && process.env.CYGNET_DESKTOP_SMOKE !== '1') dialog.showErrorBox('Cygnet stopped', 'The local service stopped unexpectedly. Restart Cygnet to continue.')
     app.quit()
   })
   await waitForApi(url)
