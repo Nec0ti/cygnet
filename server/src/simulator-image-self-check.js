@@ -35,6 +35,7 @@ try {
   assert.equal(applied[0].payload.imagePrompt,'A candid photo of the sender making coffee at home.');
   db.prepare("UPDATE accounts SET dm_due_at=?,human_reply_due_at=?,human_chat_until=? WHERE id='u0001'").run(due,due,new Date(Date.now()-1).toISOString());
   await simulator.tick();
+  assert.equal(simulator.status.lastError,null,'an expired chat window lets the persona choose to wait without a simulator error');
   assert.equal(applied.length,1,'an expired chat window lets the persona choose to wait');
   assert.equal(db.prepare("SELECT human_reply_due_at FROM accounts WHERE id='u0001'").get().human_reply_due_at,null);
   plannerKind='dm';

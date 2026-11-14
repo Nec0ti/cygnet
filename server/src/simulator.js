@@ -334,7 +334,7 @@ export class Simulator {
         new Date(this.now()).toISOString(),rhythm.postIntervalHours??null, nextMinutes(scaled((rhythm.postIntervalHours||0)*60)),
         new Date(this.now()).toISOString(),nextMinutes(scaled((rhythm.storyIntervalHours||24)*60)),
         new Date(this.now()).toISOString(),dmHours,nextMinutes(scaled((dmHours||0)*60)),new Date(this.now()).toISOString(),new Date(this.now()).toISOString(),
-        nextMinutes(scaled(12+Math.floor(Math.random()*37))),new Date(this.now()).toISOString(),wasDmDue,new Date(this.now()).toISOString(),account.id);
+        nextMinutes(scaled(12+Math.floor(Math.random()*37))),new Date(this.now()).toISOString(),Number(wasDmDue),new Date(this.now()).toISOString(),account.id);
       if(account.human_reply_due_at&&Date.parse(account.human_reply_due_at)<=this.now()) this.db.prepare('UPDATE accounts SET human_reply_due_at=NULL WHERE id=? AND human_reply_due_at=?').run(account.id,account.human_reply_due_at);
       return;
     }
@@ -344,7 +344,7 @@ export class Simulator {
     } else if(kind==='read') {
       this.db.prepare('UPDATE accounts SET read_due_at=NULL,retry_at=NULL,retry_count=0,retry_error=NULL WHERE id=?').run(account.id);
     } else {
-      this.db.prepare('UPDATE accounts SET engagement_due_at=?,retry_at=NULL,retry_count=0,retry_error=NULL,evade_due_at=CASE WHEN ? THEN NULL ELSE evade_due_at END WHERE id=?').run(nextMinutes(scaled(12+Math.floor(Math.random()*37))),kind==='evade_block',account.id);
+      this.db.prepare('UPDATE accounts SET engagement_due_at=?,retry_at=NULL,retry_count=0,retry_error=NULL,evade_due_at=CASE WHEN ? THEN NULL ELSE evade_due_at END WHERE id=?').run(nextMinutes(scaled(12+Math.floor(Math.random()*37))),Number(kind==='evade_block'),account.id);
     }
   }
 }
