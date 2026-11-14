@@ -75,6 +75,8 @@ jobs:
           pattern: cygnet-*
           path: release
           merge-multiple: true
+      - name: Normalize Windows package filenames
+        run: for file in release/*.exe; do mv "$file" "${file// /\.}"; done
       - name: Write checksums
         run: cd release && sha256sum * > SHA256SUMS.txt
       - name: Create or update GitHub Release
