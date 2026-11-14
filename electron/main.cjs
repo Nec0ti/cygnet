@@ -59,7 +59,7 @@ async function start() {
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   })
   await window.loadURL(url)
-  if (process.env.CYGNET_DESKTOP_SMOKE === '1') window.webContents.once('did-finish-load', () => app.quit())
+  if (process.env.CYGNET_DESKTOP_SMOKE === '1') app.quit()
 }
 
 app.on('second-instance', () => {
