@@ -2,15 +2,16 @@
 
 > Serbest çalışma günlüğü. En yeni kayıt en üstte; backlog'daki iş sırası ve durumu `backlog.md` dosyasındadır.
 
-## 2026-11-14 — bildirim takibi ve public desktop release hazırlığı (devam ediyor)
+## 2026-11-14 — bildirim takibi ve public desktop release hazırlığı (tamamlandı)
 
 - Follow bildirimi kartı takip işleminden sonra da sabit `Follow` gösteriyordu. Etiket artık `followedByMe` state'ini izliyor; Chromium akışı Follow → Following → Follow durumlarını denetliyor.
 - README public kullanıcılar için yenilendi; mimari, model veri işleme, güvenlik sınırı ve contribution belgeleri eklendi. Demo fallback profili gerçek kullanıcı adından genel bir örneğe çevrildi.
 - İlk desktop sürüm: `v0.1.0 — First Flight`. Electron kabuğu mevcut React UI ve API'yi tek pencerede çalıştırıyor; data OS user directory'ye yazılıyor. Windows portable data'yı `Cygnet-data/` içine, exe yanına koyuyor.
 - Release builder hedefleri: Windows 10/11 x64 NSIS setup + portable exe; Linux x64 `.deb` + AppImage. Codex CLI kimliği pakete gömülmüyor. Tag workflow'u Linux verify'dan sonra OS runner'larında build edip SHA-256 checksum'larla Release oluşturuyor.
 - Güvenlik: generated package lock'ı sıfır npm audit açığıyla sabitle; `server/data/`, .env, build output ve release output Git dışında kalmalı. İlk taramada eski committe demo profil adı bulundu; publish öncesi main history'den de temizlenmeli.
-- Linux x64 AppImage ve `.deb` NixOS ortamında üretildi; `.deb` builder bu host'ta `libcrypt.so.1` uyumluluk kütüphanesi ile çalıştırıldı. Windows artifactleri GitHub `windows-latest` doğrulamasını bekliyor.
-- Kod kontrolleri: `./cygnet.sh check` geçti; gerçek Chromium 156 E2E 22/22 geçti. Public visibility değiştirilmeyecek; release ve history cleanup doğrulandıktan sonra kullanıcıya aktarılacak.
+- Linux x64 AppImage ve `.deb` NixOS ortamında üretildi; `.deb` builder bu host'ta `libcrypt.so.1` uyumluluk kütüphanesi ile çalıştırıldı. Windows `windows-latest` runner'ında Setup ve portable `.exe` üretildi.
+- CI düzeltmeleri: simulator SQLite değerleri Node 22 ile uyumlu hale getirildi; electron-builder'ın tag sırasında otomatik publish etmesi kapatıldı; paket içindeki `seed/generate.mjs` eklendi; UtilityProcess çıkış kontrolü `exitCode` yerine exit event'ini izliyor.
+- Kod kontrolleri: `./cygnet.sh check`, Node 22 CI ve gerçek Chromium 156 E2E 22/22 geçti. Linux paket Xvfb smoke-testinden geçti; GitHub Release `v0.1.0 — First Flight` beş asset ve SHA-256 manifest ile oluşturuldu. Repo private kaldı; visibility değişikliği kullanıcıda.
 
 ## 2026-11-14 — DM devam penceresi ve hızlı cevap (tamamlandı)
 

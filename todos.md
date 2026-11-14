@@ -3,10 +3,11 @@
 ## v0.1.0 — First Flight desktop release
 
 - [x] Sandboxed Electron masaüstü kabuğu, loopback API ve kullanıcı veri klasörü.
-- [ ] Windows 10/11 x64 setup installer ve portable `.exe`; `windows-latest` CI build bekliyor.
+- [x] Windows 10/11 x64 setup installer ve portable `.exe` (`windows-latest` native build).
 - [x] Debian/Ubuntu x64 `.deb` ve Linux x64 AppImage builder çıktısı.
 - [x] Tag ile sürüm paketlerini kuran ve GitHub Release oluşturan CI akışı.
-- [ ] Windows/Linux release workflow, yüklenmiş pakette açılış ve Codex CLI önkoşulu doğrulaması.
+- [x] Windows/Linux release workflow; Linux paket açılışı Xvfb smoke-testiyle doğrulandı.
+- [x] `SHA256SUMS.txt` üretimi ve release asset digest'leri ile karşılaştırma.
 
 Sürüm etiketi `v0.1.0`, başlık **First Flight**. Bu release imzasız preview olacak; Windows kod imzası yok. Ayrıntı `docs/releases/v0.1.0.md`.
 

@@ -2,15 +2,15 @@
 
 ## Durum özeti
 
-- Aşama: public repository hazırlığı ve v0.1.0 desktop release
-- Son tamamlanan iş: bildirim follow düğmesi gerçek follow state'e bağlandı; Electron desktop shell, Windows/Linux build config ve dokümantasyon eklendi.
-- Doğrulama: `./cygnet.sh check` geçti; Chromium 156 E2E 22/22; Linux x64 AppImage ve `.deb` üretildi.
-- Şu an yapılan iş: release tag CI ilk verify adımı `simulator-image-self-check` milisaniye yarışında düştü; due zamanını 60 saniye geçmişe sabitleyen fix yerel kontrolde geçti. Tag yeniden tetiklenip Windows x64 installer/portable build doğrulanacak.
-- Sıradaki adım: temizlenmiş `main`e commit/push, `v0.1.0` tag'i ve GitHub Actions release sonucunu doğrula. Repo public yapılmayacak; son visibility değişikliği kullanıcıda.
+- Aşama: v0.1.0 desktop release tamamlandı; public repository için kullanıcı incelemesi bekleniyor.
+- Son tamamlanan iş: bildirim follow state hatası düzeltildi; Electron desktop shell ve dokümantasyon eklendi; `v0.1.0 — First Flight` release'i yayımlandı.
+- Doğrulama: `./cygnet.sh check` ve Node 22 CI geçti; Chromium 156 E2E 22/22; Windows setup + portable ve Linux `.deb` + AppImage build edildi; Linux paket smoke-test ve SHA-256 manifest kontrolü geçti.
+- Şu an yapılan iş: release tamamlandı; raporlar ve sürüm checklist'i sonuca göre güncelleniyor.
+- Sıradaki adım: lisans kararını gözden geçirip istenirse repo visibility'sini GitHub'dan kullanıcı değiştirecek. Bu ajan repo public yapmayacak.
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı
 - Benchmark sınırı: 1.000 profil/100.000 event raporu concurrency 10'da p95 37,11 sn ve 15,27 MB yanıt. Ayrıntı `reports/benchmark-2026-11-13T21-19.md` içinde
-- Release sınırı: Windows build başka bir işletim sisteminde yerel doğrulanamıyor; tag workflow'u `windows-latest` üzerinde paketleri üretip release'e ekleyecek. Windows installer henüz imzalanmıyor.
+- Release sınırı: Windows installer ve portable `.exe` native `windows-latest` runner'ında başarıyla üretildi ancak Windows GUI oturumunda çalıştırılmadı. İmzalama sertifikası yok.
 - Lisans henüz seçilmedi; GitHub deposu public olsa bile kodu yeniden dağıtma/yeniden kullanma izni için lisans kararı gerekir.
 - Sonuç raporları: `reports/2026-11-14-empty-launch-verification.md`, `reports/2026-11-14-invalid-orchestrator-target.md`, `reports/2026-11-14-dm-seen-replies.md`
 

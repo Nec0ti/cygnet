@@ -11,16 +11,18 @@
 ## Verification
 
 - `./cygnet.sh check`: passed, including isolated API integration and packaged static UI checks.
+- Node.js 22 CI verification: passed on GitHub Actions.
 - Chromium 156 browser E2E: 22/22 checks passed, including follow → following → follow in Notifications.
 - `npm audit --audit-level=moderate`: 0 vulnerabilities.
 - Linux x64 AppImage and `.deb` builder runs completed. The `.deb` control metadata and bundled runtime paths were inspected; experiment data is not included.
-- GitHub release workflow is configured to run verification, build on native Windows/Linux runners, smoke-test the packaged Linux window under Xvfb, calculate SHA-256 checksums, and create a release for a version tag.
-- First GitHub verification exposed a millisecond timing race in the simulator image self-check; its due time now starts one minute in the past. Local checks and Chromium E2E were rerun successfully; the corrected CI run is pending.
+- GitHub Actions release run [43634628213](https://github.com/Nec0ti/cygnet/actions/runs/43634628213): all jobs passed, including the Linux packaged-window smoke test under Xvfb.
+- Release [v0.1.0 — First Flight](https://github.com/Nec0ti/cygnet/releases/tag/v0.1.0) contains Windows setup and portable executables, Linux `.deb` and AppImage files, and `SHA256SUMS.txt`. The manifest was downloaded and matches the asset SHA-256 metadata.
+- CI found and fixed Node 22 SQLite boolean-binding compatibility, Electron Builder's automatic publishing attempt, the packaged seed-generator omission, and the Electron utility-process startup check.
 
 ## Limits
 
-- Windows artifacts and the corrected GitHub tag workflow still require a successful GitHub Actions run.
-- The packaged Electron window was not launched in the local NixOS shell because the downloaded Electron binary needs host libraries such as `libglib-2.0`; the release workflow performs that smoke test on Ubuntu.
+- Windows setup and portable packages were built on `windows-latest`; they were not launched in a Windows session during this verification.
+- The packaged Linux app was launched and closed by the Ubuntu/Xvfb smoke test. It was not launched locally in the NixOS shell because the downloaded Electron binary needs host libraries such as `libglib-2.0`.
 - The release is unsigned and x64 only. AppImage requires working FUSE support on Linux.
 - The repository has no open-source license; it is explicitly marked `UNLICENSED` until the maintainer chooses one.
 - `server/data/` remains on the local machine and is ignored by Git. The GitHub repository is still private; visibility has not been changed.
