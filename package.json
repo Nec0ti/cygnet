@@ -12,8 +12,8 @@
     "install:web": "npm --prefix web ci",
     "build:web": "npm run install:web && npm --prefix web run build",
     "start": "npm run build:web && electron .",
-    "dist:win": "npm run build:web && electron-builder --win nsis portable --x64",
-    "dist:linux": "npm run build:web && electron-builder --linux AppImage deb --x64"
+    "dist:win": "npm run build:web && electron-builder --win nsis portable --x64 --publish never",
+    "dist:linux": "npm run build:web && electron-builder --linux AppImage deb --x64 --publish never"
   },
   "devDependencies": {
     "electron": "^45.3.2",
