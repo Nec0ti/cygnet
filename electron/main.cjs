@@ -38,6 +38,7 @@ async function start() {
     : app.getPath('userData')
   api = utilityProcess.fork(path.join(root, 'server', 'src', 'server.js'), [], {
     cwd: root,
+      stdio: 'pipe',
     env: {
       ...process.env,
       CYGNET_DATA_DIR: dataDir,
@@ -45,7 +46,9 @@ async function start() {
       CYGNET_PORT: String(port),
     },
   })
+  api.stderr?.on('data', (chunk) => console.error(chunk.toString()))
   api.once('exit', (code) => {
+    if (process.env.CYGNET_DESKTOP_SMOKE === '1') console.error(`Cygnet service exit code: ${code}`)
     if (code && !app.isQuitting) dialog.showErrorBox('Cygnet stopped', 'The local service stopped unexpectedly. Restart Cygnet to continue.')
     app.quit()
   })
