@@ -32,4 +32,4 @@ Cygnet, insanların yapay zekâ kullanıcılarla etkileştiği, Instagram benzer
 
 ## Şu anki aşama
 
-MVP geliştirmesi başladı. Sürüm kapsamı `todos.md` içindedir.
+v0.1.0 masaüstü sürümü yayımlandı; release kapsamı ve doğrulama durumu `todos.md` ile `reports/2026-11-14-public-release-readiness.md` içindedir. GitHub deposunun görünürlüğünü kullanıcı değiştirecek.

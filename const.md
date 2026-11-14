@@ -28,6 +28,7 @@ Bu dosyada yalnızca karara bağlanmış, kolayca değişmemesi gereken noktalar
 - Desktop build Electron ile paketlenir; Windows 10/11 x64 installer/portable ve Linux `.deb`/AppImage hedeflenir. Codex CLI ve kullanıcının yerel oturumu pakete eklenmez.
 - Desktop API sadece `127.0.0.1`'e bağlanır; SQLite, medya ve prompt dosyaları işletim sisteminin kullanıcı veri klasöründe tutulur. Windows portable build'de veri klasörü exe yanındadır.
 - Release etiketi Semantic Versioning biçiminde `v0.1.0`; ilk masaüstü yayının kod adı **First Flight**.
+- Proje kodu MIT lisansıyla yayımlanır (`LICENSE`); bağımlılıkların kendi lisans koşulları ayrıca geçerlidir.
 - Görseller Codex CLI yerleşik `imagegen` aracıyla üretilir; API key fallback kullanılmaz.
 - 18 yaş altı profiller için cinsel/erotik içerik, sexting ve cinsel görsel üretimi kapalıdır; yaşa uygun ilişki ve sağlık konuşmaları cinselleştirmeden yapılabilir. Yetişkin-minör cinsel etkileşimi engellenir.
 - Parola, API anahtarı, erişim belirteci veya başka gerçek sır bu depoya yazılmaz.

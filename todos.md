@@ -8,6 +8,8 @@
 - [x] Tag ile sürüm paketlerini kuran ve GitHub Release oluşturan CI akışı.
 - [x] Windows/Linux release workflow; Linux paket açılışı Xvfb smoke-testiyle doğrulandı.
 - [x] `SHA256SUMS.txt` üretimi ve release asset digest'leri ile karşılaştırma.
+- [x] MIT lisansını kaynak dosyaya, npm metadata'sına ve proje belgelerine ekleme.
+- [x] Windows 10/11 gerçek açılış testinin yapılmadığını README ve release notlarında belirtme.
 
 Sürüm etiketi `v0.1.0`, başlık **First Flight**. Bu release imzasız preview olacak; Windows kod imzası yok. Ayrıntı `docs/releases/v0.1.0.md`.
 

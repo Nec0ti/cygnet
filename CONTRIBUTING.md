@@ -27,4 +27,4 @@ Thanks for taking an interest in Cygnet. The project is an experimental, local-f
 - Keep model prompts and image generation on the existing Codex CLI path; do not add API keys to the repository.
 - Update `backlog.md` and add a verification report when a substantial behavior or release milestone changes.
 
-No open-source license has been selected yet. Please contact the maintainer before redistributing or incorporating the code.
+Cygnet is distributed under the [MIT License](LICENSE). Contributions may be used and redistributed under those terms.

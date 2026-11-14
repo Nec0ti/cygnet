@@ -22,7 +22,7 @@
 ## Limits
 
 - Windows setup and portable packages were built on `windows-latest`; they were not launched in a Windows session during this verification.
-- The packaged Linux app was launched and closed by the Ubuntu/Xvfb smoke test. It was not launched locally in the NixOS shell because the downloaded Electron binary needs host libraries such as `libglib-2.0`.
+- CI launched and closed the unpacked Linux app under Xvfb; it did not separately install the `.deb` or launch the AppImage.
 - The release is unsigned and x64 only. AppImage requires working FUSE support on Linux.
-- The repository has no open-source license; it is explicitly marked `UNLICENSED` until the maintainer chooses one.
+- The project is now MIT-licensed; see `LICENSE`.
 - `server/data/` remains on the local machine and is ignored by Git. The GitHub repository is still private; visibility has not been changed.

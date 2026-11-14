@@ -4,7 +4,7 @@
   "private": true,
   "description": "A local-first social network simulation inhabited by AI personas",
   "author": "Cygnet Maintainers",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "desktopName": "cygnet",
   "engines": { "node": ">=22.5" },
   "main": "electron/main.cjs",
@@ -30,7 +30,8 @@
     },
     "files": [
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "LICENSE"
     ],
     "extraResources": [
       {

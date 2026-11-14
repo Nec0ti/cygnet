@@ -77,12 +77,17 @@ jobs:
           merge-multiple: true
       - name: Write checksums
         run: cd release && sha256sum * > SHA256SUMS.txt
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          if [ -f "docs/releases/${TAG}.md" ]; then
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" release/* --clobber
+            if [ -f "docs/releases/${TAG}.md" ]; then
+              gh release edit "$TAG" --title "Cygnet ${TAG}" --notes-file "docs/releases/${TAG}.md"
+            fi
+          elif [ -f "docs/releases/${TAG}.md" ]; then
             gh release create "$TAG" release/* --title "Cygnet ${TAG}" --notes-file "docs/releases/${TAG}.md" --verify-tag
           else
             gh release create "$TAG" release/* --title "Cygnet ${TAG}" --generate-notes --verify-tag
