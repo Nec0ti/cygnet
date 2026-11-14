@@ -5,7 +5,7 @@
 - Aşama: public repository hazırlığı ve v0.1.0 desktop release
 - Son tamamlanan iş: bildirim follow düğmesi gerçek follow state'e bağlandı; Electron desktop shell, Windows/Linux build config ve dokümantasyon eklendi.
 - Doğrulama: `./cygnet.sh check` geçti; Chromium 156 E2E 22/22; Linux x64 AppImage ve `.deb` üretildi.
-- Şu an yapılan iş: release workflow'u ve geçmişte kalan demo profil adının temizliğini doğrulama; Windows x64 installer/portable build GitHub Actions'ta çalıştırılacak.
+- Şu an yapılan iş: release tag CI ilk verify adımı `simulator-image-self-check` milisaniye yarışında düştü; due zamanını 60 saniye geçmişe sabitleyen fix yerel kontrolde geçti. Tag yeniden tetiklenip Windows x64 installer/portable build doğrulanacak.
 - Sıradaki adım: temizlenmiş `main`e commit/push, `v0.1.0` tag'i ve GitHub Actions release sonucunu doğrula. Repo public yapılmayacak; son visibility değişikliği kullanıcıda.
 - Yedi günlük deney başlamadı; gerçek `server/data` korunuyor
 - Açık sınır: gerçek bir haftalık çalışma verisi henüz toplanmadı

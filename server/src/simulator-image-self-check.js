@@ -8,7 +8,7 @@ import { Simulator } from './simulator.js';
 
 const temp=mkdtempSync(join(tmpdir(),'cygnet-image-check-'));
 const db=openStore(':memory:');
-const due=new Date().toISOString();
+const due=new Date(Date.now()-60_000).toISOString();
 let target='u0002',nextKind='dm',generated=0,applied=[],typingObserved=false,plannerKind='wait';
 const runner={
   runOrchestrator:async()=>({response:JSON.stringify({assignments:[{personaId:'u0001',kind:plannerKind,targetId:target}]})}),

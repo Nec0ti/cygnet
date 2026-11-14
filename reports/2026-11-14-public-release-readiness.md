@@ -15,10 +15,11 @@
 - `npm audit --audit-level=moderate`: 0 vulnerabilities.
 - Linux x64 AppImage and `.deb` builder runs completed. The `.deb` control metadata and bundled runtime paths were inspected; experiment data is not included.
 - GitHub release workflow is configured to run verification, build on native Windows/Linux runners, smoke-test the packaged Linux window under Xvfb, calculate SHA-256 checksums, and create a release for a version tag.
+- First GitHub verification exposed a millisecond timing race in the simulator image self-check; its due time now starts one minute in the past. Local checks and Chromium E2E were rerun successfully; the corrected CI run is pending.
 
 ## Limits
 
-- Windows artifacts and the GitHub tag workflow still require a successful GitHub Actions run.
+- Windows artifacts and the corrected GitHub tag workflow still require a successful GitHub Actions run.
 - The packaged Electron window was not launched in the local NixOS shell because the downloaded Electron binary needs host libraries such as `libglib-2.0`; the release workflow performs that smoke test on Ubuntu.
 - The release is unsigned and x64 only. AppImage requires working FUSE support on Linux.
 - The repository has no open-source license; it is explicitly marked `UNLICENSED` until the maintainer chooses one.
