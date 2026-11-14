@@ -12,11 +12,12 @@
 
 - `./cygnet.sh check`: passed, including isolated API integration and packaged static UI checks.
 - Node.js 22 CI verification: passed on GitHub Actions.
+- MIT license is present in the repository, npm metadata, and packaged Electron application.
 - Chromium 156 browser E2E: 22/22 checks passed, including follow → following → follow in Notifications.
 - `npm audit --audit-level=moderate`: 0 vulnerabilities.
 - Linux x64 AppImage and `.deb` builder runs completed. The `.deb` control metadata and bundled runtime paths were inspected; experiment data is not included.
-- GitHub Actions release run [43634628213](https://github.com/Nec0ti/cygnet/actions/runs/43634628213): all jobs passed, including the Linux packaged-window smoke test under Xvfb.
-- Release [v0.1.0 — First Flight](https://github.com/Nec0ti/cygnet/releases/tag/v0.1.0) contains Windows setup and portable executables, Linux `.deb` and AppImage files, and `SHA256SUMS.txt`. The manifest was downloaded and matches the asset SHA-256 metadata.
+- GitHub Actions release run [43635843272](https://github.com/Nec0ti/cygnet/actions/runs/43635843272): all jobs passed, including the Linux packaged-window smoke test under Xvfb.
+- Release [v0.1.0 — First Flight](https://github.com/Nec0ti/cygnet/releases/tag/v0.1.0) was rebuilt from the MIT-licensed tag and contains Windows setup and portable executables, Linux `.deb` and AppImage files, and `SHA256SUMS.txt`. The manifest was downloaded and matches each binary asset's SHA-256 metadata.
 - CI found and fixed Node 22 SQLite boolean-binding compatibility, Electron Builder's automatic publishing attempt, the packaged seed-generator omission, and the Electron utility-process startup check.
 
 ## Limits
